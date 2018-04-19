@@ -26,8 +26,8 @@ export class Editor {
     this.textarea.val(text);
     this.textline.html(text);
     this.el.show();
-    (<any>this.textarea.el).focus();
     (<any>this.textarea.el).setSelectionRange(text.length, text.length);
+    setTimeout(() => (<any>this.textarea.el).focus(), 10)
     this.reload();
   }
 
