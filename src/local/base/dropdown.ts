@@ -20,23 +20,32 @@ export class Dropdown extends Element {
   }
 
   documentHandler (e: any) {
-    return () => {
-      if (this.content.el.contains(e.target)) {
-        return false
-      }
-      this.content.hide()
-      document.removeEventListener('click', this.documentHandler)
+    if (this.content.el.contains(e.target)) {
+      return false
     }
+    this.content.hide()
+    this.deactive()
+    document.removeEventListener('click', this.content.data('_outsidehandler'))
   }
 
   toggleHandler (evt: Event) {
     // evt.stopPropagation()
+    // console.log(this.content.isHide(), ">>>")
     if (this.content.isHide()){
+      const clickoutsize = (evt: Event) => {
+        this.documentHandler(evt)
+      }
+
       this.content.show()
-      document.addEventListener('click', this.documentHandler)
+      this.active()
+      this.content.data('_outsidehandler', clickoutsize)
+      setTimeout(() => {
+        document.addEventListener('click', clickoutsize)
+      }, 0)
     } else {
       this.content.hide()
-      document.removeEventListener('click', this.documentHandler)
+      this.deactive()
+      document.removeEventListener('click', this.content.data('_outsidehandler'))
     }
   }
 }

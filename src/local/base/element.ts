@@ -1,8 +1,16 @@
 export class Element {
   el: HTMLElement;
+  _data: {[key: string]: any} = {};
 
   constructor (public tag = 'div') {
     this.el = document.createElement(tag)
+  }
+
+  data (key: string, value?: any) {
+    if (value !== undefined) {
+      this._data[key] = value
+    }
+    return this._data[key]
   }
 
   on (eventName: string, handler: (evt: any) => any): Element {
