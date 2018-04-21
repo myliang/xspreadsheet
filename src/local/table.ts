@@ -3,6 +3,7 @@ import { Spreadsheet } from '../core/index'
 import { Editor } from './editor';
 import { Selector } from './selector';
 import { Resizer } from './resizer';
+import { Editorbar } from "./editorbar";
 
 interface Map<T> {
   [key: string]: T
@@ -10,27 +11,41 @@ interface Map<T> {
 
 export class Table {
   cols: Map<Array<Element>> = {};
-  firsttds: Map<Element> = {};
+  firsttds: Map<Array<Element>> = {};
   tds: Map<Element> = {};
   ths: Map<Element> = {};
   ss: Spreadsheet;
-  el: Element;
-  editor: Editor;
 
+  el: Element;
+  header: Element;
+  fixedLeftBody: Element | null = null;
+
+  editor: Editor;
   rowResizer: Resizer;
   colResizer: Resizer;
 
   selector: Selector;
 
-  constructor (ss: Spreadsheet) {
+  bodyHeight: () => number;
+
+  constructor (ss: Spreadsheet, public editorbar: Editorbar, bodyHeightFn?: () => number) {
     this.ss = ss;
     this.editor = new Editor()
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
     this.selector = new Selector(this.ss, this);
+    if (bodyHeightFn) {
+      this.bodyHeight = bodyHeightFn
+    } else {
+      this.bodyHeight = (): number => {
+        return document.documentElement.clientHeight - 24 - 41 - 26
+      }
+    }
     this.el = h().class('spreadsheet-table').children([
       this.colResizer.el,
-      this.buildHeader(),
+      this.rowResizer.el,
+      this.buildFixedLeft(),
+      this.header = this.buildHeader(),
       this.buildBody()
     ]);
   }
@@ -39,9 +54,9 @@ export class Table {
     const h = this.ss.row(index).height + distance
     if (h <= this.ss.defaultRowHeight()) return
     this.ss.row(index, h)
-    const firstTd = this.firsttds[index+'']
-    if (firstTd) {
-      firstTd.attr('height', h)
+    const firstTds = this.firsttds[index+'']
+    if (firstTds) {
+      firstTds.forEach(td => td.attr('height', h))
     }
     this.selector.reload()
     this.editor.reload()
@@ -58,7 +73,7 @@ export class Table {
     this.editor.reload()
   }
 
-  private buildColGroup (): Element {
+  private buildColGroup (lastColWidth: number): Element {
     const cols = this.ss.cols();
     return h('colgroup').children([
       h('col').attr('width', '60'),
@@ -67,7 +82,38 @@ export class Table {
         this.cols[index+''] = this.cols[index+''] || []
         this.cols[index+''].push(c)
         return c; 
-      })
+      }),
+      h('col').attr('width', lastColWidth)
+    ])
+  }
+
+  private buildFixedLeft (): Element {
+    const rows = this.ss.rows();
+    return h().class('spreadsheet-fixed')
+    .style('width', '60px')
+    .children([
+      h().class('spreadsheet-header').child(h('table').child(
+        h('thead').child(
+          h('tr').child(
+            h('th').child('-')
+          )
+        ),
+      )),
+      this.fixedLeftBody = 
+      h().class('spreadsheet-body')
+      .style('height', `${this.bodyHeight() - 15}px`)
+      .children([
+        h('table').child(
+          h('tbody').children(
+            rows.map((row, rindex) => {
+              let firstTd = h('td').attr('height', `${row.height}`).child(`${rindex + 1}`)
+                .on('mouseover', (evt: Event) => this.rowResizer.set(evt.target, rindex));
+              this.firsttdsPush(rindex, firstTd)
+              return h('tr').child(firstTd)
+            })
+          )
+        )
+      ])
     ])
   }
 
@@ -80,11 +126,12 @@ export class Table {
           let th = h('th').child(col.title).on('mouseover', (evt: Event) => this.colResizer.set(evt.target, index));
           this.ths[index + ''] = th;
           return th;
-        })
+        }),
+        h('th')
       ]
     ))
     return h().class('spreadsheet-header').children([
-      h('table').children([this.buildColGroup(), thead])
+      h('table').children([this.buildColGroup(15), thead])
     ])
   }
 
@@ -92,23 +139,44 @@ export class Table {
     const rows = this.ss.rows();
     const cols = this.ss.cols();
 
+    let currentIndexs = [0, 0]
+
+    this.editorbar.onChange((v) => {
+      console.log('wwww', this.td(currentIndexs[0], currentIndexs[1]), v)
+      this.td(currentIndexs[0], currentIndexs[1]).html(v.text)
+      this.editor.setValue(v)
+    })
+
+    this.editor.onChange((v) => {
+      this.td(currentIndexs[0], currentIndexs[1]).html(v.text)
+      this.editorbar.setValue(v)
+    })
+
     const mousedown = (rindex: number, cindex: number) => {
-      this.ss.currentCell([rindex, cindex])
+      currentIndexs = [rindex, cindex]
+      const cCell = this.ss.currentCell([rindex, cindex])
+      console.log('>>>>>', cCell)
+      this.editorbar.set(`${cols[cindex].title}${rindex + 1}`, cCell)
       this.editor.clear()
     }
 
     const dblclick = (rindex: number, cindex: number) => {
       const td = this.td(rindex, cindex)
-      if (td) {
+      // if (td) {
         // console.log('td: ', td, this.ss)
-        this.editor.set(td.el, this.ss.currentCell())
-      }
+      this.editor.set(td.el, this.ss.currentCell())
+      // }
+    }
+
+    const scrollFn = (evt: any) => {
+      this.header.el.scrollLeft = evt.target.scrollLeft
+      this.fixedLeftBody && (this.fixedLeftBody.el.scrollTop = evt.target.scrollTop)
+      // console.log('>>>>>>>>scroll...', this.header, evt.target.scrollLeft, evt.target.scrollHeight)
     }
 
     const tbody = h('tbody').children(rows.map((row, rindex) => {
-      let firstTd = h('td').attr('width', `${row.height}`).child(`${rindex + 1}`)
-        .on('mouseover', (evt: Event) => this.rowResizer.set(evt.target, rindex))
-      this.firsttds[`${rindex}`] = firstTd
+      let firstTd = h('td').attr('height', `${row.height}`).child(`${rindex + 1}`);
+      this.firsttdsPush(rindex, firstTd)
       return h('tr').children([
         firstTd,
         ...cols.map((col, cindex) => {
@@ -120,20 +188,30 @@ export class Table {
             .on('dblclick', dblclick.bind(null, rindex, cindex));
           this.tds[`${rindex}_${cindex}`] = td
           return td;
-        })
+        }),
+        h('td')
       ])
     }));
 
-    return h().class('spreadsheet-body').children([
-      h('table').children([this.buildColGroup(), tbody]),
-      this.editor.el,
-      this.selector.el,
-      this.rowResizer.el
-    ])
+    return h().class('spreadsheet-body')
+      .on('scroll', scrollFn)
+      .style('height', `${this.bodyHeight()}px`)
+      .children([
+        h('table').children([this.buildColGroup(0), tbody]),
+        this.editor.el,
+        this.selector.el
+      ]
+    )
   }
 
-  td (rindex: number, cindex: number): Element | undefined {
-    return this.tds[`${rindex}_${cindex}`]
+  private firsttdsPush (index: number, el: Element) {
+    this.firsttds[`${index}`] = this.firsttds[`${index}`] || []  
+    this.firsttds[`${index}`].push(el)
+  }
+
+  td (rindex: number, cindex: number): Element {
+    const td = this.tds[`${rindex}_${cindex}`]
+    return td
   }
 
 }

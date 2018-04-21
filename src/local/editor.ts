@@ -8,7 +8,7 @@ export class Editor {
   editor: Element;
   textarea: Element;
   textline: Element; // 计算输入文本的宽度用的element
-  // change: (v: string) => void;
+  change: (v: Cell) => void = (v) => {};
   constructor () {
 
     this.el = h().children([this.editor = h().class('spreadsheet-editor').children([
@@ -18,17 +18,26 @@ export class Editor {
     ]).hide()
   }
 
+  onChange (change: (v: Cell) => void) {
+    this.change = change
+  }
+
   set (target: HTMLElement, value: Cell) {
     // console.log('set::>>')
     this.target = target;
-    this.value = value;
-    const text = value.text || '';
-    this.textarea.val(text);
-    this.textline.html(text);
+    const text = this.setValue(value)
     this.el.show();
     (<any>this.textarea.el).setSelectionRange(text.length, text.length);
     setTimeout(() => (<any>this.textarea.el).focus(), 10)
     this.reload();
+  }
+
+  setValue (value: Cell): string {
+    this.value = value;
+    const text = value.text || '';
+    this.textarea.val(text);
+    this.textline.html(text);
+    return text
   }
 
   clear () {
@@ -45,9 +54,8 @@ export class Editor {
     if (this.value) {
       this.value.text = v
       this.textline.html(v);
-      if (this.target)
-        this.target.innerHTML = v
       this.reload()
+      this.change(this.value)
     }
   }
 
@@ -60,7 +68,7 @@ export class Editor {
         const clientWidth = document.documentElement.clientWidth
         const maxWidth = clientWidth - offsetLeft - 24
         let ow = this.textline.offset().width + 16
-        console.log(maxWidth, ow, '>>>>')
+        // console.log(maxWidth, ow, '>>>>')
         if (ow > offsetWidth) {
           if (ow > maxWidth) {
             const h = (parseInt(ow / maxWidth + '') + 1) * 20

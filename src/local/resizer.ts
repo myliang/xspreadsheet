@@ -8,7 +8,7 @@ export class Resizer {
   moving: boolean = false;
   index: number = 0;
   constructor (public vertical: boolean, public change: (index: number, distance: number) => void) {
-    this.el = h().children([
+    this.el = h().class('spreadsheet-resizer-wrapper').children([
       this.resizer = h().class(`spreadsheet-resizer ${vertical ? 'vertical' : 'horizontal'}`)
         .on('mousedown', (evt: Event) => this.mousedown(evt)),
       this.resizerLine = h().class(`spreadsheet-resizer-line ${vertical ? 'vertical' : 'horizontal'}`).hide()
@@ -23,14 +23,14 @@ export class Resizer {
     // console.log(parentNode.parentNode.parentNode.parentNode.nextSibling.offsetHeight)
     this.resizer.styles({
       left: `${vertical ? offsetLeft + offsetWidth - 5 : offsetLeft}px`,
-      top: `${vertical ? offsetTop : offsetTop + offsetHeight - 5}px`,
+      top: `${vertical ? offsetTop : offsetTop + offsetHeight - 5 + 24}px`,
       width: `${vertical ? 5 : offsetWidth}px`,
       height: `${vertical ? offsetHeight : 5}px`
     })
     this.resizerLine.styles({
       left: `${vertical ? offsetLeft + offsetWidth : offsetLeft}px`,
-      top: `${vertical ? offsetTop : offsetTop + offsetHeight}px`,
-      width: `${vertical ? 0 : parentNode.offsetWidth}px`,
+      top: `${vertical ? offsetTop : offsetTop + offsetHeight + 24}px`,
+      width: `${vertical ? 0 : parentNode.parentNode.parentNode.parentNode.parentNode.nextSibling.offsetWidth - 15}px`,
       height: `${vertical ? parentNode.parentNode.parentNode.parentNode.nextSibling.offsetHeight + parentNode.offsetHeight : 0}px`
     })
     // this.el.show()

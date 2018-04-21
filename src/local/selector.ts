@@ -62,11 +62,15 @@ export class Selector {
     if (this.startTarget === undefined) return ;
     let { select } = this.ss
 
-    const _forEach = (start: number, stop: number, elements: {[key: string]: Element}, cb: (e: Element) => void): void => {
+    const _forEach = (start: number, stop: number, elements: {[key: string]: Array<Element> | Element}, cb: (e: Element) => void): void => {
       for (let i = start; i <= stop; i++) {
-        const e = elements[i + ''];
-        if (e) {
-          cb(e)
+        const es = elements[i + ''];
+        if (es) {
+          if (es instanceof Element) {
+            cb(es)
+          } else {
+            es.forEach(e => cb(e))
+          }
         }
       }
     }
@@ -89,6 +93,8 @@ export class Selector {
       e.active()
       height += parseInt(e.offset().height)
     })
+    height /= 2
+    
     _forEach(minCol, maxCol, this.table.ths, (e) => {
       e.active()
       width += parseInt(e.offset().width)

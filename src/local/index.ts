@@ -17,22 +17,37 @@ import { Font } from '../core/font';
 import { Editor } from './editor';
 import { Selector } from './selector';
 import { Table } from './table';
+import { Toolbar } from './toolbar';
+import { Editorbar } from './editorbar';
 import { h } from './base/element'
+
+interface Options {
+  d?: SpreadsheetOptions;
+  bodyHeight?: () => number;
+}
 
 export class LocalSpreadsheet {
   ss: Spreadsheet;
   refs: {[key: string]: HTMLElement} = {};
   table: Table;
+  toolbar: Toolbar;
+  editorbar: Editorbar;
 
-  constructor (public el: HTMLElement, options: SpreadsheetOptions = {}) {
-    this.ss = new Spreadsheet(options);
-    console.log('::::>>>select:', this.ss.select)
-    this.table = new Table(this.ss);
+  constructor (public el: HTMLElement, options: Options = {}) {
+    this.ss = new Spreadsheet(options.d || {});
+    // console.log('::::>>>select:', this.ss.select)
+    this.editorbar = new Editorbar()
+    this.table = new Table(this.ss, this.editorbar, options.bodyHeight);
+    this.toolbar = new Toolbar(this.ss, this.table);
     this.render();
   }
 
   render (): void {
     this.el.appendChild(h().class('spreadsheet').children([
+      h().class('spreadsheet-bars').children([
+        this.toolbar.el,
+        this.editorbar.el,
+      ]),
       // this.hBars(),
       this.table.el
     ]).el);
