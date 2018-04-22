@@ -1,122 +1,159 @@
 import { Element, h } from "./base/element";
 import { Spreadsheet } from "../core/index";
-import { Cell } from '../core/cell';
+import { Cell, getStyleFromCell, defaultCell } from '../core/cell';
 import { Table } from './table';
-import { buildItem } from './base/item';
+import { buildItem, Item } from './base/item';
 import { buildIcon } from './base/icon';
-import { buildDropdown } from './base/dropdown';
+import { buildDropdown, Dropdown } from './base/dropdown';
 import { buildMenu } from './base/menu';
 import { buildColorPanel } from './base/colorPanel';
 
 export class Toolbar {
   el: Element;
+  defaultCell: Cell;
 
-  constructor (public ss: Spreadsheet, public table: Table) {
-    // const { formats, fonts, data } = this.ss
-    // const defaultCell = data.cell
+  target: Element | null = null;
+  currentCell: Cell | null = null;
 
-    // const cellAttrCallback = (rindex: number, cindex: number, cell: Cell) => {
-    //   for (let attr of Object.keys(cell)) {
-    //     // console.log('attr: ', attr, rindex, cindex, cell)
-    //     this.refs[`cell_${rindex}_${cindex}`].style.setProperty(attr, cell[attr])
-    //   }
-    // }
-    // const cellAttrForSelect = (key: keyof Cell, v: any) => {
-    //   // console.log(key, ':', v, ', default.value: ', defaultCell[key])
-    //   if (defaultCell[key] !== v) {
-    //     this.ss.cellAttr(key, v, cellAttrCallback)
-    //   }
-    // }
-    // const cellAttrForToggle = (key: keyof Cell, v: any) => {
-    //   const ccell = this.ss.currentCell()
-    //   if (defaultCell[key] !== ccell[key]) {
-    //     v = defaultCell[key]
-    //   }
-    //   this.ss.cellAttr(key, v, cellAttrCallback)
-    // }
+  elUndo: Element;
+  elReod: Element;
+  elPaintformat: Element;
+  elClearformat: Element;
+  elFormat: Dropdown;
+  elFont: Dropdown;
+  elFontSize: Dropdown;
+  elFontWeight: Element;
+  elFontStyle: Element;
+  elTextDecoration: Element;
+  elColor: Dropdown;
+  elBackgroundColor: Dropdown;
+  elMerge: Element;
+  elAlign: Dropdown;
+  elValign: Dropdown;
+  elWordWrap: Element;
+  change: (key: keyof Cell, v: any) => void = (key, v) => {}
 
-    // const undo = (evt: Event) => {}
-    // const redo = (evt: Event) => {}
-    // const paintformat = (evt: Event) => {}
-    // const clearformat = (evt: Event) => {}
-    // const merge = (evt: Event) => {}
-
-    // const addElementToRefs = (key: keyof Cell, ele: HTMLElement) => {
-    //   return this.refs[`toolbar_${key}`] = ele
-    // }
+  constructor (public ss: Spreadsheet) {
+    this.defaultCell = ss.data.cell
 
     this.el = h().class('spreadsheet-toolbar').child(
         buildMenu('horizontal').children([
-          this.buildUndo(),
-          this.buildRedo(),
-          this.buildPaintformat(),
-          this.buildClearformat(),
-          this.buildFormats(),
+          this.elUndo = this.buildUndo(),
+          this.elReod = this.buildRedo(),
+          this.elPaintformat = this.buildPaintformat(),
+          this.elClearformat = this.buildClearformat(),
+          this.elFormat = this.buildFormats(),
           this.buildSeparator(),
-          this.buildFonts(),
-          this.buildFontSizes(),
+          this.elFont = this.buildFonts(),
+          this.elFontSize = this.buildFontSizes(),
           this.buildSeparator(),
-          this.buildFontWeight(),
-          this.buildFontStyle(),
-          this.buildTextDecoration(),
-          this.buildColor(),
+          this.elFontWeight = this.buildFontWeight(),
+          this.elFontStyle = this.buildFontStyle(),
+          this.elTextDecoration = this.buildTextDecoration(),
+          this.elColor = this.buildColor(),
           this.buildSeparator(),
-          this.buildBackgroundColor(),
-          this.buildMerge(),
+          this.elBackgroundColor = this.buildBackgroundColor(),
+          this.elMerge = this.buildMerge(),
           this.buildSeparator(),
-          this.buildAligns(),
-          this.buildValigns(),
-          this.buildWordWrap()
+          this.elAlign = this.buildAligns(),
+          this.elValign = this.buildValigns(),
+          this.elWordWrap = this.buildWordWrap()
         ])
       )
     ;
   }
 
+  set (target: Element, cell: Cell) {
+    this.target = target
+    this.setCell(cell)
+  }
+
+  private setCell (cell: Cell) {
+    this.currentCell = cell
+    this.setCellStyle()
+  }
+
+  private setCellStyle () {
+    const { target, currentCell, defaultCell, ss } = this
+    if (target && currentCell) {
+      // target.clearStyle()
+      // target.styles(getStyleFromCell(currentCell))
+      this.elFont.title.html(ss.getFont(currentCell.font || defaultCell.font).title);
+      this.elFontSize.title.html((currentCell.fontSize || defaultCell.fontSize) + '');
+      this.elFontWeight.active(currentCell.fontWeight !== undefined && currentCell.fontWeight !== defaultCell.fontWeight);
+      this.elFontStyle.active(currentCell.fontStyle !== undefined && currentCell.fontStyle !== defaultCell.fontStyle);
+      this.elTextDecoration.active(currentCell.textDecoration !== undefined && currentCell.textDecoration !== defaultCell.textDecoration);
+      this.elColor.title.style('border-bottom-color', currentCell.color || defaultCell.color);
+      this.elBackgroundColor.title.style('border-bottom-color', currentCell.backgroundColor || defaultCell.backgroundColor);
+      (<any>this.elAlign.title).replace(`align-${currentCell.align || defaultCell.align}`);
+      (<any>this.elValign.title).replace(`valign-${currentCell.valign || defaultCell.valign}`);
+      this.elWordWrap.active(currentCell.wordWrap !== undefined && currentCell.wordWrap !== defaultCell.wordWrap);
+    }
+  }
+
   private buildSeparator (): Element {
     return h().class('spreadsheet-item-separator')
   }
-  private buildAligns (): Element {
-    return buildDropdown(buildIcon(`align-${this.ss.data.cell.align}`), '60px', [buildMenu().children(
-      ['left', 'center', 'right'].map(it => buildItem().child(buildIcon(`align-${it}`).style('text-align', 'center')))
+  private buildAligns (): Dropdown {
+    const titleIcon = buildIcon(`align-${this.defaultCell.align}`)
+    const clickHandler = (it: string) => {
+      titleIcon.replace(`align-${it}`)
+      this.change('align', it)
+    }
+    return buildDropdown(titleIcon, '60px', [buildMenu().children(
+      ['left', 'center', 'right'].map(it => 
+        buildItem()
+          .child(buildIcon(`align-${it}`).style('text-align', 'center'))
+          .on('click', clickHandler.bind(null, it))
+      )
     )])
   }
-  private buildValigns (): Element {
-    return buildDropdown(buildIcon(`valign-${this.ss.data.cell.valign}`), '60px', [buildMenu().children(
-      ['top', 'middle', 'bottom'].map(it => buildItem().child(buildIcon(`valign-${it}`).style('text-align', 'center')))
+  private buildValigns (): Dropdown {
+    const titleIcon = buildIcon(`valign-${this.defaultCell.valign}`)
+    const clickHandler = (it: string) => {
+      titleIcon.replace(`valign-${it}`)
+      this.change('valign', it)
+    }
+    return buildDropdown(titleIcon, '60px', [buildMenu().children(
+      ['top', 'middle', 'bottom'].map(it => 
+        buildItem()
+          .child(buildIcon(`valign-${it}`).style('text-align', 'center'))
+          .on('click', clickHandler.bind(null, it))
+        )
     )])
   }
   private buildWordWrap (): Element {
-    return buildItem().child(buildIcon('textwrap'))
+    return buildIconItem('textwrap', (is) => this.change('textWrap', is))
   }
   private buildFontWeight (): Element {
-    return buildItem().child(buildIcon('bold'))
+    return buildIconItem('bold', (is) => this.change('bold', is))
   }
   private buildFontStyle (): Element {
-    return buildItem().child(buildIcon('italic'))
+    return buildIconItem('italic', (is) => this.change('italic', is))
   }
   private buildTextDecoration (): Element {
-    return buildItem().child(buildIcon('underline'))
+    return buildIconItem('underline', (is) => this.change('underline', is))
   }
   private buildMerge (): Element {
-    return buildItem().child(buildIcon('merge'))
+    return buildIconItem('merge', (is) => this.change('merge', is))
   }
-  private buildColor (): Element {
+  private buildColor (): Dropdown {
     return buildDropdown(
-      buildIcon('text-color').styles({'border-bottom': `3px solid ${this.ss.data.cell.color}`, 'margin-top': '2px', height: '16px'}),
+      buildIcon('text-color').styles({'border-bottom': `3px solid ${this.defaultCell.color}`, 'margin-top': '2px', height: '16px'}),
       'auto',
-      [buildColorPanel((color: string) => {})])
+      [buildColorPanel((color: string) => this.change('color', color))])
   }
-  private buildBackgroundColor (): Element {
+  private buildBackgroundColor (): Dropdown {
     return buildDropdown(
-      buildIcon('cell-color').styles({'border-bottom': `3px solid ${this.ss.data.cell.backgroundColor}`, 'margin-top': '2px', height: '16px'}),
+      buildIcon('cell-color').styles({'border-bottom': `3px solid ${this.defaultCell.backgroundColor}`, 'margin-top': '2px', height: '16px'}),
       'auto',
-      [buildColorPanel((color: string) => {})])
+      [buildColorPanel((color: string) => this.change('backgrundColor', color))])
   }
   private buildUndo (): Element {
-    return buildItem().child(buildIcon('undo'))
+    return buildItem().child(buildIcon('undo')).disabled()
   }
   private buildRedo (): Element {
-    return buildItem().child(buildIcon('redo'))
+    return buildItem().child(buildIcon('redo')).disabled()
   }
   private buildPaintformat (): Element {
     return buildItem().child(buildIcon('paintformat'))
@@ -124,19 +161,29 @@ export class Toolbar {
   private buildClearformat (): Element {
     return buildItem().child(buildIcon('clearformat'))
   }
-  private buildFormats (): Element {
-    return buildDropdown(this.ss.data.cell.format + '', '250px', [buildMenu().children(
+  private buildFormats (): Dropdown {
+    return buildDropdown(this.ss.getFormat(this.defaultCell.format).title, '250px', [buildMenu().children(
       this.ss.formats.map(it => buildItem().children([it.title, h().class('label').child(it.label||'')]))
     )])
   }
-  private buildFonts (): Element {
-    return buildDropdown(this.ss.data.cell.font + '', '170px', [buildMenu().children(
+  private buildFonts (): Dropdown {
+    return buildDropdown(this.ss.getFont(this.defaultCell.font).title, '170px', [buildMenu().children(
       this.ss.fonts.map(it => buildItem().child(it.title))
     )])
   }
-  private buildFontSizes (): Element {
-    return buildDropdown(this.ss.data.cell.fontSize + '', '70px', [buildMenu().children(
+  private buildFontSizes (): Dropdown {
+    return buildDropdown(this.defaultCell.fontSize + '', '70px', [buildMenu().children(
       [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 30, 36].map(it => buildItem().child(`${it}`))
     )])
   }
+}
+
+const buildIconItem = (iconName: string, change: (flag: boolean) => void) => {
+  const el = buildItem().child(buildIcon(iconName))
+  el.on('click', (evt) => {
+    let is = el.isActive()
+    is ? el.deactive() : el.active()
+    change(!is)
+  })
+  return el;
 }

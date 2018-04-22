@@ -18,10 +18,6 @@ export class Editorbar {
     ])
   }
 
-  onChange (change: (v: Cell) => void) {
-    this.change = change
-  }
-
   set (title: string, value: Cell) {
     this.label.html(title)
     this.setValue(value)

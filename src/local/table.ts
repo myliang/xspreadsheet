@@ -4,6 +4,8 @@ import { Editor } from './editor';
 import { Selector } from './selector';
 import { Resizer } from './resizer';
 import { Editorbar } from "./editorbar";
+import { Toolbar } from "./toolbar";
+import { Cell } from "../core/cell";
 
 interface Map<T> {
   [key: string]: T
@@ -26,9 +28,15 @@ export class Table {
 
   selector: Selector;
 
+  currentIndexs = [0, 0];
+
   bodyHeight: () => number;
 
-  constructor (ss: Spreadsheet, public editorbar: Editorbar, bodyHeightFn?: () => number) {
+  // change
+  editorChange: (v: Cell) => void = (v) => {}
+  clickCell: (rindex: number, cindex: number, v: Cell) => void = (rindex, cindex, v) => {}
+
+  constructor (ss: Spreadsheet, bodyHeightFn?: () => number) {
     this.ss = ss;
     this.editor = new Editor()
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
@@ -48,6 +56,11 @@ export class Table {
       this.header = this.buildHeader(),
       this.buildBody()
     ]);
+  }
+
+  setValueWithText (v: Cell) {
+    this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
+    this.editor.setValue(v)
   }
 
   private changeRowResizer (index: number, distance: number) {
@@ -138,34 +151,23 @@ export class Table {
   private buildBody () {
     const rows = this.ss.rows();
     const cols = this.ss.cols();
-
-    let currentIndexs = [0, 0]
-
-    this.editorbar.onChange((v) => {
-      console.log('wwww', this.td(currentIndexs[0], currentIndexs[1]), v)
-      this.td(currentIndexs[0], currentIndexs[1]).html(v.text)
-      this.editor.setValue(v)
-    })
-
+    
     this.editor.onChange((v) => {
-      this.td(currentIndexs[0], currentIndexs[1]).html(v.text)
-      this.editorbar.setValue(v)
+      this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
+      this.editorChange(v)
+      // this.editorbar.setValue(v)
     })
 
     const mousedown = (rindex: number, cindex: number) => {
-      currentIndexs = [rindex, cindex]
+      this.currentIndexs = [rindex, cindex]
       const cCell = this.ss.currentCell([rindex, cindex])
-      console.log('>>>>>', cCell)
-      this.editorbar.set(`${cols[cindex].title}${rindex + 1}`, cCell)
       this.editor.clear()
+      this.clickCell(rindex, cindex, cCell)
     }
 
     const dblclick = (rindex: number, cindex: number) => {
       const td = this.td(rindex, cindex)
-      // if (td) {
-        // console.log('td: ', td, this.ss)
       this.editor.set(td.el, this.ss.currentCell())
-      // }
     }
 
     const scrollFn = (evt: any) => {

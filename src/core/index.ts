@@ -194,12 +194,13 @@ export class Spreadsheet {
       })
     }
   }
-  cellAttr (key: keyof Cell, value: string | number, cb: (rindex: number, cindex: number, cell: Cell) => void): void {
+  cellAttr (key: keyof Cell, value: any, cb: (rindex: number, cindex: number, cell: Cell) => void): void {
     let v: Cell= {}, history: MapS<any> = {}
     v[key] = value
+    const isDefault = value === this.data.cell[key]
     if (this.select !== null) {
       this.select.forEach((rindex, cindex) => {
-        let cell = this.cell(rindex, cindex, v, true)
+        let cell = this.cell(rindex, cindex, isDefault ? mapFilter(this.cell(rindex, cindex), key) : v, !isDefault)
         cb(rindex, cindex, cell)
         history[`${rindex}.${cindex}.${key}`] = value
       })
@@ -224,6 +225,13 @@ export class Spreadsheet {
       this.data.cells[rindex][cindex] = v
     }
     return this.data.cells[rindex][cindex]
+  }
+
+  getFont (key: string | undefined) {
+    return this.fonts.filter(it => it.key === key)[0]
+  }
+  getFormat (key: string | undefined) {
+    return this.formats.filter(it => it.key === key)[0]
   }
 
   row (index: number, v?: number): Row {

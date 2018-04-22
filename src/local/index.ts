@@ -11,7 +11,7 @@ import { Spreadsheet, SpreadsheetOptions } from '../core/index'
 //   return new Spreadsheet(options)
 // }
 import '../style/index.less'
-import { Cell } from '../core/cell';
+import { Cell, getStyleFromCell } from '../core/cell';
 import { Format } from '../core/format';
 import { Font } from '../core/font';
 import { Editor } from './editor';
@@ -37,8 +37,15 @@ export class LocalSpreadsheet {
     this.ss = new Spreadsheet(options.d || {});
     // console.log('::::>>>select:', this.ss.select)
     this.editorbar = new Editorbar()
-    this.table = new Table(this.ss, this.editorbar, options.bodyHeight);
-    this.toolbar = new Toolbar(this.ss, this.table);
+    this.editorbar.change = (v) => this.editorbarChange(v)
+
+    this.toolbar = new Toolbar(this.ss);
+    this.toolbar.change = (key, v) => this.toolbarChange(key, v)
+
+    this.table = new Table(this.ss, options.bodyHeight);
+    this.table.editorChange = (v) => this.editorChange(v)
+    this.table.clickCell = (rindex, cindex, cell) => this.clickCell(rindex, cindex, cell)
+
     this.render();
   }
 
@@ -53,76 +60,26 @@ export class LocalSpreadsheet {
     ]).el);
   }
 
-  hBars () {
-    const { formats, fonts, data } = this.ss
-    const defaultCell = data.cell
+  private toolbarChange (k: keyof Cell, v: any) {
+    console.log('k: ', k, ', v: ', v)
+    this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
+      console.log('rindex: ', rindex, ', cindex: ', cindex, cell)
+      this.table.td(rindex, cindex).styles(getStyleFromCell(cell), true)
+    })
+  }
 
-    const cellAttrCallback = (rindex: number, cindex: number, cell: Cell) => {
-      for (let attr of Object.keys(cell)) {
-        // console.log('attr: ', attr, rindex, cindex, cell)
-        this.refs[`cell_${rindex}_${cindex}`].style.setProperty(attr, cell[attr])
-      }
-    }
-    const cellAttrForSelect = (key: keyof Cell, v: any) => {
-      // console.log(key, ':', v, ', default.value: ', defaultCell[key])
-      if (defaultCell[key] !== v) {
-        this.ss.cellAttr(key, v, cellAttrCallback)
-      }
-    }
-    const cellAttrForToggle = (key: keyof Cell, v: any) => {
-      const ccell = this.ss.currentCell()
-      if (defaultCell[key] !== ccell[key]) {
-        v = defaultCell[key]
-      }
-      this.ss.cellAttr(key, v, cellAttrCallback)
-    }
+  private editorbarChange (v: Cell) {
+    this.table.setValueWithText(v)
+  }
 
-    const undo = (evt: Event) => {}
-    const redo = (evt: Event) => {}
-    const paintformat = (evt: Event) => {}
-    const clearformat = (evt: Event) => {}
-    const merge = (evt: Event) => {}
+  private editorChange (v: Cell) {
+    this.editorbar.setValue(v)
+  }
 
-    const addElementToRefs = (key: keyof Cell, ele: HTMLElement) => {
-      return this.refs[`toolbar_${key}`] = ele
-    }
-
-    // return h().class('spreadsheet-bars').children, [
-    //   h('div', {className: 'spreadsheet-toolbar'}, [
-    //     h('div', {className: 'spreadsheet-menu horizontal'}, [
-    //       hItem(undo, [hIcon('undo')]),
-    //       hItem(redo, [hIcon('redo')]),
-    //       hItem(paintformat, [hIcon('paintformat')]),
-    //       hItem(clearformat, [hIcon('clearformat')]),
-    //       addElementToRefs('format', hDropdown(data.cell.format + '', '250px', hMenu(
-    //         formats.map(f => hItem(cellAttrForSelect.bind(null, 'format', f.key), [f.title, h('div', {className: 'label'}, f.label)]))
-    //       ))),
-    //       h('div', {className: 'spreadsheet-item-separator'}),
-    //       addElementToRefs('font', hDropdown(data.cell.font + '', '170px', hMenu(
-    //         fonts.map(f => hItem(cellAttrForSelect.bind(null, 'font', f.key), f.title))
-    //       ))),
-    //       addElementToRefs('fontSize', hDropdown(data.cell.fontSize + '', '70px', hMenu(
-    //         [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 30, 36].map(_e => hItem(cellAttrForSelect.bind(null, 'fontSize', _e), `${_e}`))
-    //       ))),
-    //       h('div', {className: 'spreadsheet-item-separator'}),
-    //       addElementToRefs('fontWeight', hItem(cellAttrForToggle.bind(null, 'fontWeight', 'bold'), [hIcon('bold')])),
-    //       addElementToRefs('fontStyle', hItem(cellAttrForToggle.bind(null, 'fontStyle', 'italic'), [hIcon('italic')])),
-    //       addElementToRefs('textDecoration', hItem(cellAttrForToggle.bind(null, 'textDecoration', 'underline'), [hIcon('underline')])),
-    //       addElementToRefs('color', hDropdown(hIcon('text-color', {'border-bottom': `3px solid ${data.cell.color}`, 'margin-top': '2px', height: '16px'}), 'auto', hColorPanel((color) => cellAttrForSelect('color', color)))),
-    //       h('div', {className: 'spreadsheet-item-separator'}),
-    //       addElementToRefs('backgroundColor', hDropdown(hIcon('cell-color', {'border-bottom': `3px solid ${data.cell.backgroundColor}`, 'margin-top': '2px', height: '16px'}), 'auto', hColorPanel((color) => cellAttrForSelect('backgroundColor', color)))),
-    //       addElementToRefs('merge', hItem(merge, [hIcon('merge')])),
-    //       h('div', {className: 'spreadsheet-item-separator'}),
-    //       addElementToRefs('align', hDropdown(hIcon(`align-${data.cell.align}`), '60px', hMenu(
-    //         ['left', 'center', 'right'].map(_e => hItem(cellAttrForSelect.bind(null, 'align', _e), [hIcon(`align-${_e}`, {'text-align': 'center'})]))
-    //       ))),
-    //       addElementToRefs('valign', hDropdown(hIcon(`valign-${data.cell.valign}`), '60px', hMenu(
-    //         ['top', 'middle', 'bottom'].map(_e => hItem(cellAttrForSelect.bind(null, 'valign', _e), [hIcon(`valign-${_e}`, {'text-align': 'center'})]))
-    //       ))),
-    //       addElementToRefs('wordWrap', hItem(cellAttrForToggle.bind(null, 'wordWrap', 'word-wrap'), [hIcon('textwrap')]))
-    //     ])
-    //   ])
-    // ]);
+  private clickCell (rindex: number, cindex: number, v: Cell) {
+    const cols = this.ss.cols()
+    this.editorbar.set(`${cols[cindex].title}${rindex + 1}`, v)
+    this.toolbar.set(this.table.td(rindex, cindex), v)
   }
 
 }

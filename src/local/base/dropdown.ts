@@ -3,6 +3,7 @@ import { buildIcon } from "./icon";
 
 export class Dropdown extends Element {
   content: Element;
+  title: Element;
 
   constructor (title: string | Element, width: string, contentChildren: Element[]) {
     super();
@@ -14,7 +15,7 @@ export class Dropdown extends Element {
       .style('width', width).hide();
 
     this.child(h().class('spreadsheet-dropdown-header').children([
-      typeof title === 'string' ? h().class('spreadsheet-dropdown-title').child(title) : title,
+      this.title = typeof title === 'string' ? h().class('spreadsheet-dropdown-title').child(title) : title,
       h().class('spreadsheet-dropdown-icon').on('click', (evt) => this.toggleHandler(evt)).child(buildIcon('arrow-down'))
     ])).child(this.content);
   }

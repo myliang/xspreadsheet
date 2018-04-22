@@ -14,7 +14,19 @@ export class Element {
   }
 
   on (eventName: string, handler: (evt: any) => any): Element {
-    this.el.addEventListener(eventName, handler)
+    const [first, ...others] = eventName.split('.')
+    this.el.addEventListener(first, (evt: any) => {
+      for (let k of others) {
+        if (k === 'left' && evt.button !== 1) {
+          return
+        } else if (k === 'right' && evt.button !== 2) {
+          return
+        } else if (k === 'stop') {
+          evt.stopPropagation()
+        }
+      }
+      handler(evt)
+    })
     return this;
   }
 
@@ -43,7 +55,15 @@ export class Element {
     return {top: offsetTop, left: offsetLeft, height: offsetHeight, width: offsetWidth}
   }
 
-  styles (map: {[key: string]: string} = {}): Element {
+  clearStyle () {
+    (<any>this.el).style = ''
+    return this;
+  }
+
+  styles (map: {[key: string]: string} = {}, isClear = false): Element {
+    if (isClear) {
+      this.clearStyle()
+    }
     for (let key of Object.keys(map))
       this.style(key, map[key]);
     return this;
@@ -111,16 +131,27 @@ export class Element {
     this.addClass('disabled')
     return this;
   }
+  able (): Element {
+    this.removeClass('disabled')
+    return this;
+  }
 
-  active (): Element {
+  active (flag = true): Element {
     // this.el.className = this.el.className.split(' ').filter(c => c !== 'disabled').join(' ') + ' active'
     // this.removeClass('disabled')
-    this.addClass('active')
+    if (flag)
+      this.addClass('active')
+    else
+      this.deactive()
     return this;
   }
   deactive (): Element {
     return this.removeClass('active')
   }
+  isActive (): boolean {
+    return this.hasClass('active');
+  }
+
   addClass (cls: string): Element {
     this.el.className = this.el.className.split(' ').concat(cls).join(' ')
     return this;
@@ -130,6 +161,9 @@ export class Element {
     this.el.className = this.el.className.split(' ').filter(c => c !== cls).join(' ')
     // console.log('after.className: ', this.el.className)
     return this;
+  }
+  hasClass (cls: string) {
+    return this.el.className.indexOf(cls) !== -1
   }
 
   show (): Element {
