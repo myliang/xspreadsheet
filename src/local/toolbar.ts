@@ -76,14 +76,15 @@ export class Toolbar {
 
   private setCellStyle () {
     const { target, currentCell, defaultCell, ss } = this
+    console.log(':::', currentCell)
     if (target && currentCell) {
       // target.clearStyle()
       // target.styles(getStyleFromCell(currentCell))
       this.elFont.title.html(ss.getFont(currentCell.font || defaultCell.font).title);
       this.elFontSize.title.html((currentCell.fontSize || defaultCell.fontSize) + '');
-      this.elFontWeight.active(currentCell.fontWeight !== undefined && currentCell.fontWeight !== defaultCell.fontWeight);
-      this.elFontStyle.active(currentCell.fontStyle !== undefined && currentCell.fontStyle !== defaultCell.fontStyle);
-      this.elTextDecoration.active(currentCell.textDecoration !== undefined && currentCell.textDecoration !== defaultCell.textDecoration);
+      this.elFontWeight.active(currentCell.bold !== undefined && currentCell.bold !== defaultCell.bold);
+      this.elFontStyle.active(currentCell.italic !== undefined && currentCell.italic !== defaultCell.italic);
+      this.elTextDecoration.active(currentCell.underline !== undefined && currentCell.underline !== defaultCell.underline);
       this.elColor.title.style('border-bottom-color', currentCell.color || defaultCell.color);
       this.elBackgroundColor.title.style('border-bottom-color', currentCell.backgroundColor || defaultCell.backgroundColor);
       (<any>this.elAlign.title).replace(`align-${currentCell.align || defaultCell.align}`);
