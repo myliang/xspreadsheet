@@ -1,5 +1,5 @@
 import { Element, h } from "./base/element";
-import { Cell } from "../core/cell"
+import { Cell, getStyleFromCell } from "../core/cell"
 
 export class Editor {
   el: Element;
@@ -38,6 +38,10 @@ export class Editor {
     this.textarea.val(text);
     this.textline.html(text);
     return text
+  }
+  setStyle (value: Cell): void {
+    let attrs = {width: this.textarea.style('width'), height: this.textarea.style('height')}
+    this.textarea.styles(Object.assign(attrs, getStyleFromCell(value)), true)
   }
 
   clear () {

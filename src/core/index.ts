@@ -215,7 +215,7 @@ export class Spreadsheet {
     return this.cell(rindex, cindex)
   }
 
-  private cell (rindex: number, cindex: number, v: any = undefined, isCopy = false): Cell {
+  cell (rindex: number, cindex: number, v: any = undefined, isCopy = false): Cell {
     this.data.cells = this.data.cells || {}
     this.data.cells[rindex] = this.data.cells[rindex] || {}
     this.data.cells[rindex][cindex] = this.data.cells[rindex][cindex] || {}

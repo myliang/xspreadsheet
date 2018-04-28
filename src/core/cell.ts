@@ -52,7 +52,7 @@ export function getStyleFromCell (cell: Cell): {[key: string]: string} {
     map['display'] = 'none'
   }
   if (cell.wordWrap) {
-    map['word-wrap'] = 'text-wrap'
+    map['word-wrap'] = 'break-word'
     map['white-space'] = 'normal'
   }
   return map

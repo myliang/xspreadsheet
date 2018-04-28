@@ -7,6 +7,7 @@ import { buildIcon } from './base/icon';
 import { buildDropdown, Dropdown } from './base/dropdown';
 import { buildMenu } from './base/menu';
 import { buildColorPanel } from './base/colorPanel';
+import { Font } from "../core/font";
 
 export class Toolbar {
   el: Element;
@@ -123,7 +124,7 @@ export class Toolbar {
     )])
   }
   private buildWordWrap (): Element {
-    return buildIconItem('textwrap', (is) => this.change('textWrap', is))
+    return buildIconItem('textwrap', (is) => this.change('wordWrap', is))
   }
   private buildFontWeight (): Element {
     return buildIconItem('bold', (is) => this.change('bold', is))
@@ -138,16 +139,24 @@ export class Toolbar {
     return buildIconItem('merge', (is) => this.change('merge', is))
   }
   private buildColor (): Dropdown {
+    const clickHandler = (color: string) => {
+      this.elColor.title.style('border-bottom-color', color)
+      this.change('color', color)
+    }
     return buildDropdown(
       buildIcon('text-color').styles({'border-bottom': `3px solid ${this.defaultCell.color}`, 'margin-top': '2px', height: '16px'}),
       'auto',
-      [buildColorPanel((color: string) => this.change('color', color))])
+      [buildColorPanel(clickHandler)])
   }
   private buildBackgroundColor (): Dropdown {
+    const clickHandler = (color: string) => {
+      this.elBackgroundColor.title.style('border-bottom-color', color)
+      this.change('backgroundColor', color)
+    }
     return buildDropdown(
       buildIcon('cell-color').styles({'border-bottom': `3px solid ${this.defaultCell.backgroundColor}`, 'margin-top': '2px', height: '16px'}),
       'auto',
-      [buildColorPanel((color: string) => this.change('backgrundColor', color))])
+      [buildColorPanel(clickHandler)])
   }
   private buildUndo (): Element {
     return buildItem().child(buildIcon('undo')).disabled()
@@ -167,13 +176,29 @@ export class Toolbar {
     )])
   }
   private buildFonts (): Dropdown {
+    const clickHandler = (it: Font) => {
+      this.elFont.title.html(it.title)
+      this.change('font', it.key)
+    }
     return buildDropdown(this.ss.getFont(this.defaultCell.font).title, '170px', [buildMenu().children(
-      this.ss.fonts.map(it => buildItem().child(it.title))
+      this.ss.fonts.map(it => { 
+        return buildItem()
+          .child(it.title)
+          .on('click', clickHandler.bind(null, it))
+      })
     )])
   }
   private buildFontSizes (): Dropdown {
+    const clickHandler = (it: number) => {
+      this.elFontSize.title.html(`${it}`)
+      this.change('fontSize', it)
+    }
     return buildDropdown(this.defaultCell.fontSize + '', '70px', [buildMenu().children(
-      [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 30, 36].map(it => buildItem().child(`${it}`))
+      [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 30, 36].map(it => {
+        return buildItem()
+          .child(`${it}`)
+          .on('click', clickHandler.bind(null, it))
+      })
     )])
   }
 }

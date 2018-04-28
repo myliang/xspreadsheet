@@ -61,11 +61,11 @@ export class LocalSpreadsheet {
   }
 
   private toolbarChange (k: keyof Cell, v: any) {
-    console.log('k: ', k, ', v: ', v)
     this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
-      console.log('rindex: ', rindex, ', cindex: ', cindex, cell)
+      console.log('rindex: ', rindex, ', cindex: ', cindex, cell, getStyleFromCell(cell))
       this.table.td(rindex, cindex).styles(getStyleFromCell(cell), true)
     })
+    this.table.editor.setStyle(this.ss.currentCell())
   }
 
   private editorbarChange (v: Cell) {

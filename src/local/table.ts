@@ -183,6 +183,7 @@ export class Table {
         firstTd,
         ...cols.map((col, cindex) => {
           let td = h('td')
+            .child(this.ss.cell(rindex, cindex).text || '')
             .attr('type', 'cell')
             .attr('row-index', rindex + '')
             .attr('col-index', cindex + '')

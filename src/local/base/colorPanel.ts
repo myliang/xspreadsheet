@@ -24,7 +24,7 @@ export class ColorPanel extends Element {
                 return h('td').child(
                   h()
                     .class('color-cell')
-                    .on('click', click)
+                    .on('click', click.bind(null, color))
                     .style('background-color', color)
                 )
               })
