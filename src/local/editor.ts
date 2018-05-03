@@ -9,10 +9,11 @@ export class Editor {
   textarea: Element;
   textline: Element; // 计算输入文本的宽度用的element
   change: (v: Cell) => void = (v) => {};
-  constructor () {
+  constructor (public defaultRowHeight: number) {
 
     this.el = h().children([this.editor = h().class('spreadsheet-editor').children([
-        this.textarea = h('textarea').on('input', (evt: Event) => this.inputChange(evt)),
+        this.textarea = h('textarea')
+          .on('input', (evt: Event) => this.inputChange(evt)),
         this.textline = h().styles({visibility: 'hidden', overflow: 'hidden', position: 'fixed', top: '0', left: '0'})
       ])
     ]).hide()
@@ -46,7 +47,7 @@ export class Editor {
 
   clear () {
     // console.log('clear:>>>')
-    this.el.hide()
+    this.el.hide();
     this.target = null;
     this.value = null;
     this.textarea.val('')
@@ -59,7 +60,6 @@ export class Editor {
       this.value.text = v
       this.textline.html(v);
       this.reload()
-      this.change(this.value)
     }
   }
 
@@ -69,21 +69,33 @@ export class Editor {
         const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = this.target
         this.editor.styles({left: `${offsetLeft - 1}px`, top: `${offsetTop - 1}px`})
         this.textarea.styles({width: `${offsetWidth - 8}px`, height: `${offsetHeight - 2}px`})
-        const clientWidth = document.documentElement.clientWidth
-        const maxWidth = clientWidth - offsetLeft - 24
         let ow = this.textline.offset().width + 16
         // console.log(maxWidth, ow, '>>>>')
-        if (ow > offsetWidth) {
-          if (ow > maxWidth) {
-            const h = (parseInt(ow / maxWidth + '') + 1) * 20
+        if (this.value) {
+          if (this.value.wordWrap) {
+            // 如果单元格自动换行，那么宽度固定，高度变化
+            // this.textarea.style('height', 'auto');
+            const h = (parseInt(ow / offsetWidth + '') + (ow % offsetWidth > 0 ? 1 : 0)) * this.defaultRowHeight;
             if (h > offsetHeight) {
-              this.textarea.style('height', `${h}px`)
-            } else {
-              this.textarea.style('height', `${offsetHeight}px`)
+              this.textarea.style('height', `${h}px`);
             }
-            ow = maxWidth
+          } else {
+            const clientWidth = document.documentElement.clientWidth
+            const maxWidth = clientWidth - offsetLeft - 24
+            if (ow > offsetWidth) {
+              if (ow > maxWidth) {
+                // console.log(':::::::::', ow, maxWidth)
+                const h = (parseInt(ow / maxWidth + '') + (ow % maxWidth > 0 ? 1 : 0)) * this.defaultRowHeight;
+                if (h > offsetHeight) {
+                  this.textarea.style('height', `${h}px`)
+                } else {
+                  this.textarea.style('height', `${offsetHeight}px`)
+                }
+                ow = maxWidth
+              }
+              this.textarea.style('width', `${ow}px`)
+            }
           }
-          this.textarea.style('width', `${ow}px`)
         }
       }
     // }, 0)

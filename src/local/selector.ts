@@ -34,6 +34,7 @@ export class Selector {
   }
 
   private mousedown (evt: any) {
+    // console.log('>>>>>>>>selector>>')
     // console.log(this, evt, evt.type, evt.detail, evt.buttons)
     if (evt.detail === 1 && evt.target.getAttribute('type') === 'cell') {
       // console.log(evt.shiftKey)

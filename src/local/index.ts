@@ -1,15 +1,4 @@
 import { Spreadsheet, SpreadsheetOptions } from '../core/index'
-// import { 
-//   createElement as h, 
-//   createIcon as hIcon, 
-//   createItem as hItem, 
-//   createDropdown as hDropdown, 
-//   createMenu as hMenu,
-//   createColorPanel as hColorPanel
-// } from './dom'
-// export function spreadsheet (options: SpreadsheetOptions = {}) {
-//   return new Spreadsheet(options)
-// }
 import '../style/index.less'
 import { Cell, getStyleFromCell } from '../core/cell';
 import { Format } from '../core/format';
@@ -19,7 +8,7 @@ import { Selector } from './selector';
 import { Table } from './table';
 import { Toolbar } from './toolbar';
 import { Editorbar } from './editorbar';
-import { h } from './base/element'
+import { h, Element } from './base/element'
 
 interface Options {
   d?: SpreadsheetOptions;
@@ -45,7 +34,6 @@ export class LocalSpreadsheet {
     this.table = new Table(this.ss, options.bodyHeight);
     this.table.editorChange = (v) => this.editorChange(v)
     this.table.clickCell = (rindex, cindex, cell) => this.clickCell(rindex, cindex, cell)
-
     this.render();
   }
 
@@ -55,15 +43,13 @@ export class LocalSpreadsheet {
         this.toolbar.el,
         this.editorbar.el,
       ]),
-      // this.hBars(),
       this.table.el
     ]).el);
   }
 
   private toolbarChange (k: keyof Cell, v: any) {
     this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
-      console.log('rindex: ', rindex, ', cindex: ', cindex, cell, getStyleFromCell(cell))
-      this.table.td(rindex, cindex).styles(getStyleFromCell(cell), true)
+      this.table.setTdStylesAndRowHeight(rindex, cindex, cell, k === 'wordWrap' && v);
     })
     this.table.editor.setStyle(this.ss.currentCell())
   }

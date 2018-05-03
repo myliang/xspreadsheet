@@ -5,7 +5,7 @@ import { Selector } from './selector';
 import { Resizer } from './resizer';
 import { Editorbar } from "./editorbar";
 import { Toolbar } from "./toolbar";
-import { Cell } from "../core/cell";
+import { Cell, getStyleFromCell } from "../core/cell";
 
 interface Map<T> {
   [key: string]: T
@@ -21,6 +21,7 @@ export class Table {
   el: Element;
   header: Element;
   fixedLeftBody: Element | null = null;
+  singleLineTextWrapper: Element;
 
   editor: Editor;
   rowResizer: Resizer;
@@ -28,7 +29,7 @@ export class Table {
 
   selector: Selector;
 
-  currentIndexs = [0, 0];
+  currentIndexs: [number, number] | null = null;
 
   bodyHeight: () => number;
 
@@ -38,7 +39,7 @@ export class Table {
 
   constructor (ss: Spreadsheet, bodyHeightFn?: () => number) {
     this.ss = ss;
-    this.editor = new Editor()
+    this.editor = new Editor(ss.defaultRowHeight())
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
     this.selector = new Selector(this.ss, this);
@@ -54,17 +55,45 @@ export class Table {
       this.rowResizer.el,
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
-      this.buildBody()
+      this.buildBody(),
+
+      // 暂时供自动换行(计算输入长度)使用
+      this.singleLineTextWrapper = h().styles({visibility: 'hidden', overflow: 'hidden', position: 'fixed', top: '0', left: '0'})
     ]);
   }
 
   setValueWithText (v: Cell) {
-    this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
+    this.currentIndexs && this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
     this.editor.setValue(v)
   }
 
-  private changeRowResizer (index: number, distance: number) {
-    const h = this.ss.row(index).height + distance
+  setTdStylesAndRowHeight (rindex: number, cindex: number, cell: Cell, autoWordWrap = true) {
+    this.setTdStyles(rindex, cindex, cell);
+    this.setRowHeight(rindex, cindex, autoWordWrap);
+  }
+  setRowHeight (rindex: number, cindex: number, autoWordWrap: boolean) {
+    // console.log('rowHeight: ', this.td(rindex, cindex).offset().height, ', autoWordWrap:', autoWordWrap)
+    // 遍历rindex行的所有单元格，计算最大高度
+    const cols = this.ss.cols()
+    let h = this.td(rindex, cindex).offset().height
+    // if (!autoWordWrap) {
+    //   console.log('ary:', cols.filter((col, _index) => _index !== cindex))
+    //   h = 0;
+    //   cols.forEach((col, _index) => {
+    //     if (cindex !== _index) {
+    //       const _h = this.td(rindex, _index).offset().height
+    //       console.log('HHH:', h, _h)
+    //       if (_h > h) h = _h
+    //     }
+    //   })
+    // }
+    this.changeRowHeight(rindex, h - 1);
+  }
+  setTdStyles (rindex: number, cindex: number, cell: Cell) {
+    this.td(rindex, cindex).styles(getStyleFromCell(cell), true)
+  }
+
+  private changeRowHeight (index: number, h: number) {
     if (h <= this.ss.defaultRowHeight()) return
     this.ss.row(index, h)
     const firstTds = this.firsttds[index+'']
@@ -73,6 +102,10 @@ export class Table {
     }
     this.selector.reload()
     this.editor.reload()
+  }
+  private changeRowResizer (index: number, distance: number) {
+    const h = this.ss.row(index).height + distance
+    this.changeRowHeight(index, h);
   }
   private changeColResizer (index: number, distance: number) {
     const w = this.ss.col(index).width + distance
@@ -152,17 +185,34 @@ export class Table {
     const rows = this.ss.rows();
     const cols = this.ss.cols();
     
-    this.editor.onChange((v) => {
-      this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
-      this.editorChange(v)
-      // this.editorbar.setValue(v)
-    })
+    // this.editor.onChange((v) => {
+    //   this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
+    //   this.editorChange(v)
+    //   // this.editorbar.setValue(v)
+    // })
 
     const mousedown = (rindex: number, cindex: number) => {
+      if (this.currentIndexs && this.editor.target) {
+        const oldCell = this.ss.cell(this.currentIndexs[0], this.currentIndexs[1]);
+        const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
+        if (oldCell.wordWrap) {
+          // this.calcRowHeight(this.currentIndexs[0], oldTd, oldCell);
+          // this.changeRowHeight(this.currentIndexs[0], this.editor.textareaHeight())
+        }
+        // 设置内容之后，获取高度设置行高
+        oldTd.html(oldCell.text)
+        if (oldCell.wordWrap) {
+          this.changeRowHeight(this.currentIndexs[0], oldTd.offset().height)
+        }
+        console.log('old.td.offset:', oldTd.offset().height)
+        this.editorChange(oldCell)
+      }
+      this.editor.clear()
+
       this.currentIndexs = [rindex, cindex]
       const cCell = this.ss.currentCell([rindex, cindex])
-      this.editor.clear()
       this.clickCell(rindex, cindex, cCell)
+      console.log('>>>>>>>>><<<<')
     }
 
     const dblclick = (rindex: number, cindex: number) => {
