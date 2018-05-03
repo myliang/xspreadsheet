@@ -48,6 +48,25 @@ export class LocalSpreadsheet {
   }
 
   private toolbarChange (k: keyof Cell, v: any) {
+    if (k === 'merge') {
+      this.ss.merge((rindex, cindex, cell) => {
+        // console.log(rindex, cindex, '>>>', this.table.td(rindex, cindex))
+        this.table.td(rindex, cindex)
+          .attr('rowspan', cell.rowspan || 1)
+          .attr('colspan', cell.colspan || 1)
+          .show(true)
+      }, (rindex, cindex, cell) => {
+        this.table.td(rindex, cindex)
+          .attr('rowspan', 1)
+          .attr('colspan', 1)
+          .show(true)
+      }, (rindex, cindex, cell) => {
+        let td = this.table.td(rindex, cindex)
+        !cell.invisible ? td.show(true) : td.hide()
+      })
+      return;
+    }
+
     this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
       this.table.setTdStylesAndRowHeight(rindex, cindex, cell, k === 'wordWrap' && v);
     })
@@ -62,7 +81,7 @@ export class LocalSpreadsheet {
     this.editorbar.setValue(v)
   }
 
-  private clickCell (rindex: number, cindex: number, v: Cell) {
+  private clickCell (rindex: number, cindex: number, v: Cell | null) {
     const cols = this.ss.cols()
     this.editorbar.set(`${cols[cindex].title}${rindex + 1}`, v)
     this.toolbar.set(this.table.td(rindex, cindex), v)

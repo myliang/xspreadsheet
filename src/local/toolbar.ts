@@ -64,32 +64,39 @@ export class Toolbar {
     ;
   }
 
-  set (target: Element, cell: Cell) {
+  set (target: Element, cell: Cell | null) {
     this.target = target
     this.setCell(cell)
   }
 
-  private setCell (cell: Cell) {
+  private setCell (cell: Cell | null) {
     this.currentCell = cell
     this.setCellStyle()
   }
 
   private setCellStyle () {
     const { target, currentCell, defaultCell, ss } = this
-    console.log(':::', currentCell)
-    if (target && currentCell) {
+    // console.log(':::', currentCell)
+    if (target) {
       // target.clearStyle()
       // target.styles(getStyleFromCell(currentCell))
-      this.elFont.title.html(ss.getFont(currentCell.font || defaultCell.font).title);
-      this.elFontSize.title.html((currentCell.fontSize || defaultCell.fontSize) + '');
-      this.elFontWeight.active(currentCell.bold !== undefined && currentCell.bold !== defaultCell.bold);
-      this.elFontStyle.active(currentCell.italic !== undefined && currentCell.italic !== defaultCell.italic);
-      this.elTextDecoration.active(currentCell.underline !== undefined && currentCell.underline !== defaultCell.underline);
-      this.elColor.title.style('border-bottom-color', currentCell.color || defaultCell.color);
-      this.elBackgroundColor.title.style('border-bottom-color', currentCell.backgroundColor || defaultCell.backgroundColor);
-      (<any>this.elAlign.title).replace(`align-${currentCell.align || defaultCell.align}`);
-      (<any>this.elValign.title).replace(`valign-${currentCell.valign || defaultCell.valign}`);
-      this.elWordWrap.active(currentCell.wordWrap !== undefined && currentCell.wordWrap !== defaultCell.wordWrap);
+      this.elFont.title.html(ss.getFont(currentCell !== null && currentCell.font || defaultCell.font).title);
+      this.elFontSize.title.html((currentCell !== null && currentCell.fontSize || defaultCell.fontSize) + '');
+      this.elFontWeight.active(currentCell !== null && currentCell.bold !== undefined && currentCell.bold !== defaultCell.bold);
+      this.elFontStyle.active(currentCell !== null && currentCell.italic !== undefined && currentCell.italic !== defaultCell.italic);
+      this.elTextDecoration.active(currentCell !== null && currentCell.underline !== undefined && currentCell.underline !== defaultCell.underline);
+      this.elColor.title.style('border-bottom-color', currentCell !== null && currentCell.color || defaultCell.color);
+      this.elBackgroundColor.title.style('border-bottom-color', currentCell !== null && currentCell.backgroundColor || defaultCell.backgroundColor);
+      (<any>this.elAlign.title).replace(`align-${currentCell !== null && currentCell.align || defaultCell.align}`);
+      (<any>this.elValign.title).replace(`valign-${currentCell !== null && currentCell.valign || defaultCell.valign}`);
+      this.elWordWrap.active(currentCell !== null && currentCell.wordWrap !== undefined && currentCell.wordWrap !== defaultCell.wordWrap);
+      // console.log('select:', currentCell)
+      if ((currentCell !== null && currentCell.rowspan && currentCell.rowspan > 1)
+        || (currentCell !== null && currentCell.colspan && currentCell.colspan > 1)) {
+        this.elMerge.active(true);
+      } else {
+        this.elMerge.active(false);
+      }
     }
   }
 

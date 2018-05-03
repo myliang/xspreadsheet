@@ -18,14 +18,14 @@ export class Editorbar {
     ])
   }
 
-  set (title: string, value: Cell) {
+  set (title: string, value: Cell | null) {
     this.label.html(title)
     this.setValue(value)
   }
 
-  setValue (value: Cell) {
+  setValue (value: Cell | null) {
     this.value = value
-    this.textarea.val(value.text || '')
+    this.textarea.val(value && value.text || '')
   }
 
   input (evt: any) {

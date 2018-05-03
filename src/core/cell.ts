@@ -30,30 +30,32 @@ export const defaultCell: Cell = {
   align: 'left',
   valign: 'middle',
   wordWrap: false,
-  visable: true,
+  invisible: false,
   rowspan: 1,
   colspan: 1,
   text: '',
 
 }
 
-export function getStyleFromCell (cell: Cell): {[key: string]: string} {
+export function getStyleFromCell (cell: Cell | null): {[key: string]: string} {
   const map: {[key: string]: string} = {}
-  if (cell.font) map['font-family'] = cell.font
-  if (cell.fontSize) map['font-size'] = `${cell.fontSize}px`
-  if (cell.bold) map['font-weight'] = 'bold'
-  if (cell.italic) map['font-style'] = 'italic'
-  if (cell.underline) map['text-decoration'] = 'underline'
-  if (cell.color) map['color'] = cell.color
-  if (cell.backgroundColor) map['background-color'] = cell.backgroundColor
-  if (cell.align) map['text-align'] = cell.align
-  if (cell.valign) map['vertical-align'] = cell.valign
-  if (cell.visable) {
-    map['display'] = 'none'
-  }
-  if (cell.wordWrap) {
-    map['word-wrap'] = 'break-word'
-    map['white-space'] = 'normal'
+  if (cell) {
+    if (cell.font) map['font-family'] = cell.font
+    if (cell.fontSize) map['font-size'] = `${cell.fontSize}px`
+    if (cell.bold) map['font-weight'] = 'bold'
+    if (cell.italic) map['font-style'] = 'italic'
+    if (cell.underline) map['text-decoration'] = 'underline'
+    if (cell.color) map['color'] = cell.color
+    if (cell.backgroundColor) map['background-color'] = cell.backgroundColor
+    if (cell.align) map['text-align'] = cell.align
+    if (cell.valign) map['vertical-align'] = cell.valign
+    if (cell.invisible) {
+      map['display'] = 'none'
+    }
+    if (cell.wordWrap) {
+      map['word-wrap'] = 'break-word'
+      map['white-space'] = 'normal'
+    }
   }
   return map
 }

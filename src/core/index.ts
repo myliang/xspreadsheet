@@ -27,6 +27,9 @@ interface SpreadsheetData {
   cells?: Map<Map<Cell>>;
   [prop: string]: any
 }
+
+type StandardCallback = (rindex: number, cindex: number, cell: Cell) => void;
+
 export interface SpreadsheetOptions {
   formats?: Array<Format>;
   fonts?: Array<Font>;
@@ -68,40 +71,41 @@ export class Spreadsheet {
     const startAttrs = getElementAttrs(startTarget)
     const endAttrs = getElementAttrs(endTarget)
     // console.log(':::::::>>>', startAttrs, endAttrs)
-    if (startTarget !== endTarget) {
-      let sRow = startAttrs.row
-      let sCol = startAttrs.col
-      let eRow = endAttrs.row
-      let eCol = endAttrs.col
-      if (sRow > eRow) {
-        sRow = endAttrs.row
-        eRow = startAttrs.row
-      }
-      if (sCol > eCol) {
-        sCol = endAttrs.col
-        eCol = startAttrs.col
-      }
-      // calc min, max of row
-      // console.log('s: ', sRow, sCol, ', e: ', eRow, eCol, ', minRow: ', minRow)
-      let [minRow, maxRow] = calcMinＭaxRow((r: number, c: number) => this.cell(r, c), sRow, eRow, sCol, eCol)
-
-      // calc min, max of col
-      let [minCol, maxCol] = calcMinMaxCol((r: number, c: number) => this.cell(r, c), minRow, maxRow, sCol, eCol)
-      while (true) {
-        const [minr, maxr] = calcMinＭaxRow((r: number, c: number) => this.cell(r, c), minRow, maxRow, minCol, maxCol)
-        let [minc, maxc] = calcMinMaxCol((r: number, c: number) => this.cell(r, c), minRow, maxRow, minCol, maxCol)
-        if (minRow === minr && maxRow === maxr && minCol === minc && maxCol === maxc) {
-          break
-        }
-        minRow = minr
-        maxRow = maxr
-        minCol = minc
-        maxCol = maxc
-      }
-      this.select = new Select([minRow, minCol], [maxRow, maxCol], false)
-    } else {
-      this.select = new Select([startAttrs.row, startAttrs.col], [endAttrs.row, endAttrs.col], false)
+    let sRow = startAttrs.row
+    let sCol = startAttrs.col
+    let eRow = endAttrs.row
+    let eCol = endAttrs.col
+    if (sRow > eRow) {
+      sRow = endAttrs.row
+      eRow = startAttrs.row
     }
+    if (sCol > eCol) {
+      sCol = endAttrs.col
+      eCol = startAttrs.col
+    }
+    // calc min, max of row
+    // console.log('s: ', sRow, sCol, ', e: ', eRow, eCol)
+    let [minRow, maxRow] = calcMinＭaxRow((r: number, c: number) => this.getCell(r, c), sRow, eRow, sCol, eCol)
+    // console.log('minRow: ', minRow, ', maxRow: ', maxRow)
+    // calc min, max of col
+    let [minCol, maxCol] = calcMinMaxCol((r: number, c: number) => this.getCell(r, c), minRow, maxRow, sCol, eCol)
+    while (true) {
+      const [minr, maxr] = calcMinＭaxRow((r: number, c: number) => this.getCell(r, c), minRow, maxRow, minCol, maxCol)
+      let [minc, maxc] = calcMinMaxCol((r: number, c: number) => this.getCell(r, c), minRow, maxRow, minCol, maxCol)
+      if (minRow === minr && maxRow === maxr && minCol === minc && maxCol === maxc) {
+        break
+      }
+      minRow = minr
+      maxRow = maxr
+      minCol = minc
+      maxCol = maxc
+    }
+    const firstCell = this.getCell(minRow, minCol)
+    // console.log('first => rowspan: ', firstCell.rowspan, ', colspan: ', firstCell.colspan)
+    let canotMerge = minRow + (firstCell && firstCell.rowspan || 1) - 1 === maxRow && minCol + (firstCell && firstCell.colspan || 1) - 1 === maxCol
+    // console.log('row: ', minRow, maxRow, ', col:', minCol, maxCol, canotMerge)
+    // 计算是否可以merge
+    this.select = new Select([minRow, minCol], [maxRow, maxCol], !canotMerge)
     return this.select
   }
 
@@ -130,12 +134,15 @@ export class Spreadsheet {
         if (cselect) {
           const srcRowIndex = cselect.rowIndex(i)
           const srcColIndex = cselect.colIndex(j)
-          const toldCell = this.cell(rindex, cindex)
-          const tcell = this.cell(rindex, cindex, this.cell(srcRowIndex, srcColIndex))
-          if (copy === 'style') {
-            tcell.text = toldCell.text
+          const toldCell = this.getCell(rindex, cindex)
+          const srcCell = this.getCell(srcRowIndex, srcColIndex)
+          if (srcCell) {
+            const tcell = this.cell(rindex, cindex, srcCell)
+            if (copy === 'style' && toldCell) {
+              tcell.text = toldCell.text
+            }
+            cb(rindex, cindex, tcell)
           }
-          cb(rindex, cindex, tcell)
         }
       })
     }
@@ -173,49 +180,71 @@ export class Spreadsheet {
     })
   }
 
-  merge (): void {
+  /**
+   * 
+   * @param ok 合并单元格第一个单元格（左上角）的回调函数
+   * @param cancel 取消合并单元格第一个单元格（左上角）的回调函数
+   * @param other 其他单元格的回调函数
+   */
+  merge (ok: StandardCallback, cancel: StandardCallback, other: StandardCallback): void {
     const { select } = this
+    console.log('data.before: ', this.data)
     if (select !== null && select.cellLen() > 1) {
       // merge merge: [rows[0], cols[0]]
       let index = 0
+      let firstXY: [number, number] = [0, 0]
       select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
         if (index++ === 0) {
-          const v: Cell = {}
+          firstXY = [rindex, cindex]
+          let v: Cell = {}
           if (rowspan > 1) v.rowspan = rowspan
           if (colspan > 1) v.colspan = colspan
-          if (select.canMerge)
-            this.cell(rindex, cindex, v, true)
-          else {
-            this.cell(rindex, cindex, mapFilter(this.cell(rindex, cindex), 'rowspan', 'colspan'))
+          // console.log('rowspan:', rowspan, ', colspan:', colspan, select.canMerge)
+          if (select.canMerge) {
+            let cell = this.cell(rindex, cindex, v, true)
+            ok(rindex, cindex, cell)
+          } else {
+            let cell = this.cell(rindex, cindex, mapFilter(this.getCell(rindex, cindex), 'rowspan', 'colspan', 'merge'))
+            cancel(rindex, cindex, cell)
           }
         } else {
-          this.cell(rindex, cindex, {visable: !select.canMerge}, true)
+          let v: Cell = {invisible: select.canMerge}
+          if (select.canMerge) {
+            v.merge = firstXY
+            let cell = this.cell(rindex, cindex, v, true)
+            other(rindex, cindex, cell)
+          } else {
+            let cell = this.cell(rindex, cindex, mapFilter(this.getCell(rindex, cindex), 'rowspan', 'colspan', 'merge', 'invisible'))
+            other(rindex, cindex, cell)
+          }
         }
       })
+      select.canMerge = !select.canMerge
+      console.log('data:', this.data)
     }
   }
-  cellAttr (key: keyof Cell, value: any, cb: (rindex: number, cindex: number, cell: Cell) => void): void {
+  cellAttr (key: keyof Cell, value: any, cb: StandardCallback): void {
     let v: Cell= {}, history: MapS<any> = {}
     v[key] = value
     const isDefault = value === this.data.cell[key]
     if (this.select !== null) {
       this.select.forEach((rindex, cindex) => {
-        let cell = this.cell(rindex, cindex, isDefault ? mapFilter(this.cell(rindex, cindex), key) : v, !isDefault)
+        let cell = this.cell(rindex, cindex, isDefault ? mapFilter(this.getCell(rindex, cindex), key) : v, !isDefault)
         cb(rindex, cindex, cell)
         history[`${rindex}.${cindex}.${key}`] = value
       })
       this.histories.push(history)
     }
   }
-  currentCell (indexes?: [number, number]) {
+  currentCell (indexes?: [number, number]): Cell | null {
     if (indexes !== undefined) {
       this.currentCellIndexes = indexes
     }
     const [rindex, cindex] = this.currentCellIndexes
-    return this.cell(rindex, cindex)
+    return this.getCell(rindex, cindex)
   }
 
-  cell (rindex: number, cindex: number, v: any = undefined, isCopy = false): Cell {
+  cell (rindex: number, cindex: number, v: any, isCopy = false): Cell {
     this.data.cells = this.data.cells || {}
     this.data.cells[rindex] = this.data.cells[rindex] || {}
     this.data.cells[rindex][cindex] = this.data.cells[rindex][cindex] || {}
@@ -225,6 +254,13 @@ export class Spreadsheet {
       this.data.cells[rindex][cindex] = v
     }
     return this.data.cells[rindex][cindex]
+  }
+
+  getCell (rindex: number, cindex: number): Cell | null {
+    if (this.data.cells && this.data.cells[rindex] && this.data.cells[rindex][cindex]) {
+      return this.data.cells[rindex][cindex];
+    }
+    return null;
   }
 
   getFont (key: string | undefined) {
@@ -275,11 +311,13 @@ const mapMaxKey = function<T>(max: number, map: Map<T> | undefined): number {
 }
 const mapFilter = function(obj: any, ...keys: Array<string>): any {
   const ret: any = {}
-  Object.keys(obj).forEach(e => {
-    if (keys.indexOf(e) === -1) {
-      ret[e] = obj[e]
-    }
-  })
+  if (obj){
+    Object.keys(obj).forEach(e => {
+      if (keys.indexOf(e) === -1) {
+        ret[e] = obj[e]
+      }
+    })
+  }
   return ret
 }
 const range = function<T>(stop:number, cb: (index: number) => T): Array<T> {
@@ -305,27 +343,31 @@ const getElementAttrs = (target: any) => {
 const calcMinMaxCol = (cell: any, sRow: number, eRow: number, sCol: number, eCol: number) => {
   let minCol = sCol
   let maxCol = eCol
+  // console.log(':::::::;start: ', maxCol, minCol)
   for (let j = sRow; j <= eRow; j++) {
     let cCol = sCol
     let dcell = cell(j, cCol)
-    if (dcell.merge) {
+    if (dcell && dcell.merge) {
       cCol += dcell.merge[1] - cCol
     }
     if (cCol < minCol) minCol = cCol
 
     cCol = maxCol
     dcell = cell(j, cCol)
-    // console.log(j, cCol, dcell.colspan)
-    const cColspan = dcell.colspan || 1
+    // console.log(j, cCol, dcell && dcell.colspan || 1)
+    const cColspan = dcell ? dcell.colspan : 1
     if (parseInt(cColspan) > 1) {
       cCol += parseInt(cColspan)
     } else {
-      if (dcell.merge) {
+      if (dcell && dcell.merge) {
+        // console.log('merge::', maxCol, dcell.merge)
         const [r, c] = dcell.merge
         const rc = cell(r, c).colspan
         cCol += rc + (c - cCol)
       }
     }
+    // console.log('cCol: ', cCol, ', maxCol: ', maxCol)
+    // console.log(':::::::;end: ', maxCol, minCol)
     if (cCol - 1 > maxCol) maxCol = cCol - 1
   }
   return [minCol, maxCol]
@@ -336,7 +378,7 @@ const calcMinＭaxRow = (cell: any, sRow: number, eRow: number, sCol: number, eC
   for (let j = sCol; j <= eCol; j++) {
     let cRow = sRow
     let dcell = cell(cRow, j)
-    if (dcell.merge) {
+    if (dcell && dcell.merge) {
       cRow += dcell.merge[0] - cRow
     }
     if (cRow < minRow) minRow = cRow
@@ -344,11 +386,11 @@ const calcMinＭaxRow = (cell: any, sRow: number, eRow: number, sCol: number, eC
     cRow = maxRow
     dcell = cell(cRow, j)
     // console.log('row: ', j, cRow, dcell.rowspan)
-    const cRowspan = dcell.rowspan || 1
+    const cRowspan = dcell ? dcell.rowspan : 1
     if (parseInt(cRowspan) > 1) {
       cRow += parseInt(cRowspan)
     } else {
-      if (dcell.merge) {
+      if (dcell && dcell.merge) {
         const [r, c] = dcell.merge
         const rs = cell(r, c).rowspan
         cRow += rs + (r - cRow)

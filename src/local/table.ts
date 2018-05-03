@@ -21,7 +21,6 @@ export class Table {
   el: Element;
   header: Element;
   fixedLeftBody: Element | null = null;
-  singleLineTextWrapper: Element;
 
   editor: Editor;
   rowResizer: Resizer;
@@ -35,7 +34,7 @@ export class Table {
 
   // change
   editorChange: (v: Cell) => void = (v) => {}
-  clickCell: (rindex: number, cindex: number, v: Cell) => void = (rindex, cindex, v) => {}
+  clickCell: (rindex: number, cindex: number, v: Cell | null) => void = (rindex, cindex, v) => {}
 
   constructor (ss: Spreadsheet, bodyHeightFn?: () => number) {
     this.ss = ss;
@@ -55,10 +54,7 @@ export class Table {
       this.rowResizer.el,
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
-      this.buildBody(),
-
-      // 暂时供自动换行(计算输入长度)使用
-      this.singleLineTextWrapper = h().styles({visibility: 'hidden', overflow: 'hidden', position: 'fixed', top: '0', left: '0'})
+      this.buildBody()
     ]);
   }
 
@@ -75,18 +71,16 @@ export class Table {
     // console.log('rowHeight: ', this.td(rindex, cindex).offset().height, ', autoWordWrap:', autoWordWrap)
     // 遍历rindex行的所有单元格，计算最大高度
     const cols = this.ss.cols()
-    let h = this.td(rindex, cindex).offset().height
-    // if (!autoWordWrap) {
-    //   console.log('ary:', cols.filter((col, _index) => _index !== cindex))
-    //   h = 0;
-    //   cols.forEach((col, _index) => {
-    //     if (cindex !== _index) {
-    //       const _h = this.td(rindex, _index).offset().height
-    //       console.log('HHH:', h, _h)
-    //       if (_h > h) h = _h
-    //     }
-    //   })
-    // }
+    const td = this.td(rindex, cindex)
+    let h = td.offset().height
+    // console.log()
+    const tdRowspan = td.attr('rowspan')
+    if (tdRowspan) {
+      for (let i = 1; i < parseInt(tdRowspan); i++) {
+        let firsttds = this.firsttds[i+'']
+        firsttds && (h -= parseInt(firsttds[0].attr('height') || 0) + 1)
+      }
+    }
     this.changeRowHeight(rindex, h - 1);
   }
   setTdStyles (rindex: number, cindex: number, cell: Cell) {
@@ -191,28 +185,28 @@ export class Table {
     //   // this.editorbar.setValue(v)
     // })
 
-    const mousedown = (rindex: number, cindex: number) => {
-      if (this.currentIndexs && this.editor.target) {
-        const oldCell = this.ss.cell(this.currentIndexs[0], this.currentIndexs[1]);
+    const mousedown = (rindex: number, cindex: number, evt: any) => {
+      this.selector.mousedown(evt)
+      const editorValue = this.editor.value
+      if (this.currentIndexs && this.editor.target && editorValue) {
+        const oldCell = this.ss.cell(this.currentIndexs[0], this.currentIndexs[1], editorValue, true);
         const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
-        if (oldCell.wordWrap) {
-          // this.calcRowHeight(this.currentIndexs[0], oldTd, oldCell);
-          // this.changeRowHeight(this.currentIndexs[0], this.editor.textareaHeight())
+        oldTd.html(editorValue.text)
+        if (oldCell) {
+          // 设置内容之后，获取高度设置行高
+          if (oldCell.wordWrap) {
+            this.setRowHeight(this.currentIndexs[0], this.currentIndexs[1], true)
+          }
+          // console.log('old.td.offset:', oldTd.offset().height)
+          this.editorChange(oldCell)
         }
-        // 设置内容之后，获取高度设置行高
-        oldTd.html(oldCell.text)
-        if (oldCell.wordWrap) {
-          this.changeRowHeight(this.currentIndexs[0], oldTd.offset().height)
-        }
-        console.log('old.td.offset:', oldTd.offset().height)
-        this.editorChange(oldCell)
       }
       this.editor.clear()
 
       this.currentIndexs = [rindex, cindex]
       const cCell = this.ss.currentCell([rindex, cindex])
       this.clickCell(rindex, cindex, cCell)
-      console.log('>>>>>>>>><<<<')
+      // console.log('>>>>>>>>><<<<')
     }
 
     const dblclick = (rindex: number, cindex: number) => {
@@ -232,12 +226,16 @@ export class Table {
       return h('tr').children([
         firstTd,
         ...cols.map((col, cindex) => {
+          let cell = this.ss.getCell(rindex, cindex)
           let td = h('td')
-            .child(this.ss.cell(rindex, cindex).text || '')
+            .child(cell && cell.text || '')
             .attr('type', 'cell')
             .attr('row-index', rindex + '')
             .attr('col-index', cindex + '')
-            .on('mousedown', mousedown.bind(null, rindex, cindex))
+            .attr('rowspan', cell && cell.rowspan || 1)
+            .attr('colspan', cell && cell.colspan || 1)
+            .styles(getStyleFromCell(cell), true)
+            .on('mousedown', (evt: any) => mousedown(rindex, cindex, evt))
             .on('dblclick', dblclick.bind(null, rindex, cindex));
           this.tds[`${rindex}_${cindex}`] = td
           return td;

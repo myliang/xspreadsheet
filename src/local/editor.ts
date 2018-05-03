@@ -23,7 +23,7 @@ export class Editor {
     this.change = change
   }
 
-  set (target: HTMLElement, value: Cell) {
+  set (target: HTMLElement, value: Cell | null) {
     // console.log('set::>>')
     this.target = target;
     const text = this.setValue(value)
@@ -33,16 +33,22 @@ export class Editor {
     this.reload();
   }
 
-  setValue (value: Cell): string {
-    this.value = value;
-    const text = value.text || '';
-    this.textarea.val(text);
-    this.textline.html(text);
-    return text
+  setValue (value: Cell | null): string {
+    if (value) {
+      this.value = value;
+      const text = value.text || '';
+      this.textarea.val(text);
+      this.textline.html(text);
+      return text
+    } else {
+      return '';
+    }
   }
-  setStyle (value: Cell): void {
-    let attrs = {width: this.textarea.style('width'), height: this.textarea.style('height')}
-    this.textarea.styles(Object.assign(attrs, getStyleFromCell(value)), true)
+  setStyle (value: Cell | null): void {
+    if (value) {
+      let attrs = {width: this.textarea.style('width'), height: this.textarea.style('height')}
+      this.textarea.styles(Object.assign(attrs, getStyleFromCell(value)), true)
+    }
   }
 
   clear () {
@@ -56,11 +62,15 @@ export class Editor {
 
   private inputChange (evt: any) {
     const v = evt.target.value
-    if (this.value) {
-      this.value.text = v
-      this.textline.html(v);
-      this.reload()
+    if (!/^\s*$/.test(v)) {
+      if (this.value) {
+        this.value.text = v
+      } else {
+        this.value = {text: v}
+      }
     }
+    this.textline.html(v);
+    this.reload()
   }
 
   reload () {

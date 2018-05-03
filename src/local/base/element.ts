@@ -78,6 +78,11 @@ export class Element {
     return this;
   }
 
+  removeStyle (key: string) {
+    this.el.style.removeProperty(key)
+    return ;
+  }
+
   children (cs: Array<HTMLElement | string | Element>): Element {
     for (let c of cs)
       this.child(c);
@@ -166,8 +171,8 @@ export class Element {
     return this.el.className.indexOf(cls) !== -1
   }
 
-  show (): Element {
-    this.style('display', 'block');
+  show (isRemove = false): Element {
+    isRemove ? this.removeStyle('display') : this.style('display', 'block');
     return this;
   }
 
