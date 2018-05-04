@@ -6,6 +6,8 @@ import { Resizer } from './resizer';
 import { Editorbar } from "./editorbar";
 import { Toolbar } from "./toolbar";
 import { Cell, getStyleFromCell } from "../core/cell";
+import { formatRenderHtml } from "../core/format";
+import { formulaRender } from "../core/formula";
 
 interface Map<T> {
   [key: string]: T
@@ -59,15 +61,36 @@ export class Table {
   }
 
   setValueWithText (v: Cell) {
-    this.currentIndexs && this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
+    this.currentIndexs && this.td(this.currentIndexs[0], this.currentIndexs[1]).html(this.renderCell(v))
     this.editor.setValue(v)
   }
 
-  setTdStylesAndRowHeight (rindex: number, cindex: number, cell: Cell, autoWordWrap = true) {
+  setTdWithCell (rindex: number, cindex: number, cell: Cell, autoWordWrap = true) {
     this.setTdStyles(rindex, cindex, cell);
     this.setRowHeight(rindex, cindex, autoWordWrap);
+    this.td(rindex, cindex).html(this.renderCell(cell));
   }
-  setRowHeight (rindex: number, cindex: number, autoWordWrap: boolean) {
+
+  td (rindex: number, cindex: number): Element {
+    const td = this.tds[`${rindex}_${cindex}`]
+    return td
+  }
+
+  private renderCell (cell: Cell | null): string {
+    if (cell) {
+      return formatRenderHtml(cell.format, this._renderCell(cell))
+    }
+    return '';
+  }
+  private _renderCell (cell: Cell | null): string {
+    if (cell) {
+      let text = cell.text || '';
+      return formulaRender(text, (rindex, cindex) => this._renderCell(this.ss.getCell(rindex, cindex)))
+    }
+    return '';
+  }
+
+  private setRowHeight (rindex: number, cindex: number, autoWordWrap: boolean) {
     // console.log('rowHeight: ', this.td(rindex, cindex).offset().height, ', autoWordWrap:', autoWordWrap)
     // 遍历rindex行的所有单元格，计算最大高度
     const cols = this.ss.cols()
@@ -83,7 +106,8 @@ export class Table {
     }
     this.changeRowHeight(rindex, h - 1);
   }
-  setTdStyles (rindex: number, cindex: number, cell: Cell) {
+
+  private setTdStyles (rindex: number, cindex: number, cell: Cell) {
     this.td(rindex, cindex).styles(getStyleFromCell(cell), true)
   }
 
@@ -191,7 +215,7 @@ export class Table {
       if (this.currentIndexs && this.editor.target && editorValue) {
         const oldCell = this.ss.cell(this.currentIndexs[0], this.currentIndexs[1], editorValue, true);
         const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
-        oldTd.html(editorValue.text)
+        oldTd.html(this.renderCell(editorValue))
         if (oldCell) {
           // 设置内容之后，获取高度设置行高
           if (oldCell.wordWrap) {
@@ -228,7 +252,7 @@ export class Table {
         ...cols.map((col, cindex) => {
           let cell = this.ss.getCell(rindex, cindex)
           let td = h('td')
-            .child(cell && cell.text || '')
+            .child(this.renderCell(cell))
             .attr('type', 'cell')
             .attr('row-index', rindex + '')
             .attr('col-index', cindex + '')
@@ -258,11 +282,6 @@ export class Table {
   private firsttdsPush (index: number, el: Element) {
     this.firsttds[`${index}`] = this.firsttds[`${index}`] || []  
     this.firsttds[`${index}`].push(el)
-  }
-
-  td (rindex: number, cindex: number): Element {
-    const td = this.tds[`${rindex}_${cindex}`]
-    return td
   }
 
 }

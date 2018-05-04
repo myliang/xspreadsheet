@@ -4,6 +4,14 @@ export interface Format {
   label?: string;
   render(txt: string): string;
 }
+export const formatRenderHtml = (key: string | undefined, txt: string | undefined) => {
+  for (let i = 0; i < formats.length; i++) {
+    if (formats[i].key === key) {
+      return formats[i].render(txt || '')
+    }
+  }
+  return txt || ''
+}
 
 const formatNumberRender = (v: string) => {
   if (/^(-?\d*.?\d*)$/.test(v)) {

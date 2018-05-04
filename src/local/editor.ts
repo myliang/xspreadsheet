@@ -34,6 +34,7 @@ export class Editor {
   }
 
   setValue (value: Cell | null): string {
+    this.setStyle(value);
     if (value) {
       this.value = value;
       const text = value.text || '';
@@ -45,10 +46,8 @@ export class Editor {
     }
   }
   setStyle (value: Cell | null): void {
-    if (value) {
-      let attrs = {width: this.textarea.style('width'), height: this.textarea.style('height')}
-      this.textarea.styles(Object.assign(attrs, getStyleFromCell(value)), true)
-    }
+    let attrs = {width: this.textarea.style('width'), height: this.textarea.style('height')}
+    this.textarea.styles(Object.assign(attrs, getStyleFromCell(value)), true)
   }
 
   clear () {

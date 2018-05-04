@@ -188,7 +188,7 @@ export class Spreadsheet {
    */
   merge (ok: StandardCallback, cancel: StandardCallback, other: StandardCallback): void {
     const { select } = this
-    console.log('data.before: ', this.data)
+    // console.log('data.before: ', this.data)
     if (select !== null && select.cellLen() > 1) {
       // merge merge: [rows[0], cols[0]]
       let index = 0
@@ -220,7 +220,7 @@ export class Spreadsheet {
         }
       })
       select.canMerge = !select.canMerge
-      console.log('data:', this.data)
+      // console.log('data:', this.data)
     }
   }
   cellAttr (key: keyof Cell, value: any, cb: StandardCallback): void {

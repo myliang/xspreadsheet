@@ -4,3 +4,13 @@ export function alphabet(index: number): string {
   // console.log('a: ', a, '; b: ', b)
   return a > 0 ? `${_alphabet[a - 1]}${_alphabet[b]}` : _alphabet[b]
 }
+
+export function alphabetIndex (key: string): number {
+  let ret = 0;
+  for (let i = 0; i < key.length; i++) {
+    console.log(key.charCodeAt(i), key[i])
+    let cindex = key.charCodeAt(i) - 65;
+    ret += i * _alphabet.length + cindex;
+  }
+  return ret;
+}
