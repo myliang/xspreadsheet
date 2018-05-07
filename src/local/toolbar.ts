@@ -178,7 +178,7 @@ export class Toolbar {
     return buildItem().child(buildIcon('paintformat'))
   }
   private buildClearformat (): Element {
-    return buildItem().child(buildIcon('clearformat'))
+    return buildItem().child(buildIcon('clearformat')).on('click', (is) => this.change('clearformat', true));
   }
   private buildFormats (): Dropdown {
     const clickHandler = (it: Format) => {

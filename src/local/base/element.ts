@@ -49,6 +49,10 @@ export class Element {
     }
     return this;
   }
+  removeAttr(attr: string): Element {
+    this.el.removeAttribute(attr);
+    return this;
+  }
 
   offset (): any {
     const { offsetTop, offsetLeft, offsetHeight, offsetWidth } = this.el

@@ -180,6 +180,19 @@ export class Spreadsheet {
     })
   }
 
+  clearformat (cb: StandardCallback) {
+    const { select } = this
+    if (select !== null) {
+      select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
+        let c = this.getCell(rindex, cindex);
+        if (c) {
+          c = this.cell(rindex, cindex, {text: c.text});
+          cb(rindex, cindex, c);
+        }
+      });
+    }
+  }
+
   /**
    * 
    * @param ok 合并单元格第一个单元格（左上角）的回调函数

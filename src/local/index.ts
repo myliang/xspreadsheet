@@ -51,12 +51,25 @@ export class LocalSpreadsheet {
     if (k === 'merge') {
       this.merge();
       return;
+    } else if (k === 'clearformat') {
+      this.clearformat();
+      return ;
     }
 
     this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
       this.table.setTdWithCell(rindex, cindex, cell, k === 'wordWrap' && v);
     })
     this.table.editor.setStyle(this.ss.currentCell())
+  }
+
+  private clearformat () {
+    this.ss.clearformat((rindex, cindex, cell) => {
+      this.table.td(rindex, cindex)
+        .removeAttr('rowspan')
+        .removeAttr('colspan')
+        .styles({}, true)
+        .show(true);
+    })
   }
 
   private merge () {
