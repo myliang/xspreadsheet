@@ -30,8 +30,12 @@ export class Editorbar {
 
   input (evt: any) {
     const v = evt.target.value
-    if (this.value) {
-      this.value['text'] = v
+    if (!/^\s*$/.test(v)) {
+      if (this.value) {
+        this.value.text = v
+      } else {
+        this.value = {text: v}
+      }
       this.change(this.value)
     }
   }

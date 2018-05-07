@@ -61,7 +61,11 @@ export class Table {
   }
 
   setValueWithText (v: Cell) {
-    this.currentIndexs && this.td(this.currentIndexs[0], this.currentIndexs[1]).html(this.renderCell(v))
+    // console.log('setValueWithText: v = ', v)
+    if (this.currentIndexs) {
+      this.ss.cell(this.currentIndexs[0], this.currentIndexs[1], v, true);
+      this.td(this.currentIndexs[0], this.currentIndexs[1]).html(this.renderCell(v));
+    }
     this.editor.setValue(v)
   }
 
