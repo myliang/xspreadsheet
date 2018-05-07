@@ -1,7 +1,7 @@
 import { Element, h } from "./base/element";
 import { Spreadsheet } from '../core/index'
 import { Editor } from './editor';
-import { Selector } from './selector';
+import { Selector, DashedSelector } from './selector';
 import { Resizer } from './resizer';
 import { Editorbar } from "./editorbar";
 import { Toolbar } from "./toolbar";
@@ -29,6 +29,8 @@ export class Table {
   colResizer: Resizer;
 
   selector: Selector;
+  dashedSelector: DashedSelector;
+  state: 'copy' | 'cut' | 'copyformat' | null = null;
 
   currentIndexs: [number, number] | null = null;
 
@@ -44,6 +46,9 @@ export class Table {
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
     this.selector = new Selector(this.ss, this);
+    this.selector.change = () => this.selectorChange();
+    this.dashedSelector = new DashedSelector();
+
     if (bodyHeightFn) {
       this.bodyHeight = bodyHeightFn
     } else {
@@ -73,6 +78,76 @@ export class Table {
     this.setTdStyles(rindex, cindex, cell);
     this.setRowHeight(rindex, cindex, autoWordWrap);
     this.td(rindex, cindex).html(this.renderCell(cell));
+  }
+
+  setCellAttr (k: keyof Cell, v: any) {
+    this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
+      this.setTdWithCell(rindex, cindex, cell, k === 'wordWrap' && v);
+    })
+    this.editor.setStyle(this.ss.currentCell())
+  }
+
+  copy () {
+    this.ss.copy();
+    this.dashedSelector.set(this.selector);
+    this.state = 'copy';
+  }
+
+  cut () {
+    this.ss.cut();
+    this.dashedSelector.set(this.selector);
+    this.state = 'cut';
+  }
+
+  copyformat () {
+    this.ss.copy();
+    this.dashedSelector.set(this.selector);
+    this.state = 'copyformat';
+  }
+
+  paste () {
+    if (this.state !== null && this.ss.select) {
+      this.ss.paste((rindex, cindex, cell) => {
+        let td = this.td(rindex, cindex);
+        this.setTdStyles(rindex, cindex, cell);
+        this.setTdAttrs(rindex, cindex, cell);
+        if (this.state === 'cut' || this.state === 'copy') {
+          td.html(this.renderCell(cell));
+        }
+      }, this.state === 'copyformat' ? 'style' : 'all');
+    }
+
+    if (this.state === 'copyformat') {
+      this.state = null;
+    } else if (this.state === 'cut') {
+      this.state = null;  
+    } else if (this.state === 'copy') {
+      // this.ss.paste()
+    }
+    
+    this.dashedSelector.hide();
+  }
+
+  clearformat () {
+    this.ss.clearformat((rindex, cindex, cell) => {
+      this.td(rindex, cindex)
+        .removeAttr('rowspan')
+        .removeAttr('colspan')
+        .styles({}, true)
+        .show(true);
+    })
+  }
+
+  merge () {
+    this.ss.merge((rindex, cindex, cell) => {
+      // console.log(rindex, cindex, '>>>', this.table.td(rindex, cindex))
+      this.setTdAttrs(rindex, cindex, cell).show(true)
+    }, (rindex, cindex, cell) => {
+      this.setTdAttrs(rindex, cindex, cell).show(true)
+    }, (rindex, cindex, cell) => {
+      let td = this.td(rindex, cindex)
+      !cell.invisible ? td.show(true) : td.hide()
+    })
   }
 
   td (rindex: number, cindex: number): Element {
@@ -111,8 +186,17 @@ export class Table {
     this.changeRowHeight(rindex, h - 1);
   }
 
-  private setTdStyles (rindex: number, cindex: number, cell: Cell) {
-    this.td(rindex, cindex).styles(getStyleFromCell(cell), true)
+  private setTdStyles (rindex: number, cindex: number, cell: Cell): Element {
+    return this.td(rindex, cindex).styles(getStyleFromCell(cell), true)
+  }
+  private setTdAttrs (rindex: number, cindex: number, cell: Cell): Element {
+    return this.td(rindex, cindex)
+      .attr('rowspan', cell.rowspan || 1)
+      .attr('colspan', cell.colspan || 1);
+  }
+
+  private selectorChange () {
+    this.paste();
   }
 
   private changeRowHeight (index: number, h: number) {
@@ -278,7 +362,8 @@ export class Table {
       .children([
         h('table').children([this.buildColGroup(0), tbody]),
         this.editor.el,
-        this.selector.el
+        this.selector.el,
+        this.dashedSelector.el
       ]
     )
   }

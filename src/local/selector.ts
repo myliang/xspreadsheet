@@ -11,9 +11,12 @@ export class Selector {
   areaEl: Element;
   cornerEl: Element;
   el: Element;
+  _offset = {left: 0, top: 0, width: 0, height: 0};
 
   startTarget: any;
   endTarget: any;
+
+  change: () => void = () => {};
 
   constructor (public ss: Spreadsheet, public table: Table) {
     this.topEl = h().class('top-border');
@@ -35,7 +38,7 @@ export class Selector {
 
   mousedown (evt: any) {
     // console.log('>>>>>>>>selector>>')
-    // console.log(this, evt, evt.type, evt.detail, evt.buttons)
+    // console.log(this, evt, evt.type, evt.detail, evt.buttons, evt.button)
     if (evt.detail === 1 && evt.target.getAttribute('type') === 'cell') {
       // console.log(evt.shiftKey)
       if (evt.shiftKey) {
@@ -51,7 +54,7 @@ export class Selector {
           this.endTarget = e.target
           this.setOffset()
         }
-      }, (e) => {  })
+      }, (e) => { this.change() })
     }
   }
 
@@ -106,6 +109,8 @@ export class Selector {
     if (td) {
       // console.log('td:', td)
       const {left, top} = td.offset()
+      this._offset = {left, top, width, height};
+
       this.topEl.styles({left: `${left - 1}px`, top: `${top - 1}px`, width: `${width + 1}px`, height: '2px'})
       this.rightEl.styles({left: `${left + width - 1}px`, top: `${top - 1}px`, width: '2px', height: `${height}px`})
       this.bottomEl.styles({left: `${left - 1}px`, top: `${top + height - 1}px`, width: `${width}px`, height: '2px'})
@@ -113,5 +118,28 @@ export class Selector {
       this.areaEl.styles({left: `${left}px`, top: `${top}px`, width: `${width - 2}px`, height: `${height - 2}px`})
       this.cornerEl.styles({left: `${left + width - 5}px`, top: `${top + height - 5}px`})
     }
+  }
+}
+
+export class DashedSelector {
+  el: Element;
+  constructor () {
+    this.el = h().class('spreadsheet-borders dashed').hide();
+  }
+
+  set (selector: Selector) {
+    if (selector._offset) {
+      const { left, top, width, height } = selector._offset;
+      this.el
+        .style('left', `${left - 2}px`)
+        .style('top', `${top - 2}px`)
+        .style('width', `${width}px`)
+        .style('height', `${height}px`)
+        .show();
+    }
+  }
+
+  hide () {
+    this.el.hide();
   }
 }

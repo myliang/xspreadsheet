@@ -123,28 +123,58 @@ export class Spreadsheet {
   cut (): void {
     this.cutSelect = this.select
   }
-  paste (target: Select, cb: (rindex: number, cindex: number, cell: Cell) => void, copy: 'all' | 'style' = 'all'): void {
+  paste (cb: (rindex: number, cindex: number, cell: Cell) => void, copy: 'all' | 'style' = 'all'): void {
     let cselect = this.copySelect
     if (this.cutSelect) {
       cselect = this.cutSelect
       this.cutSelect = null
     }
-    if (cselect) {
-      target.forEach((rindex, cindex, i, j, rowspan, colspan) => {
-        if (cselect) {
-          const srcRowIndex = cselect.rowIndex(i)
-          const srcColIndex = cselect.colIndex(j)
-          const toldCell = this.getCell(rindex, cindex)
-          const srcCell = this.getCell(srcRowIndex, srcColIndex)
-          if (srcCell) {
-            const tcell = this.cell(rindex, cindex, srcCell)
-            if (copy === 'style' && toldCell) {
-              tcell.text = toldCell.text
+    if (cselect && this.select) {
+      if (copy === 'style') {
+        this.select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
+          if (cselect) {
+            const srcRowIndex = cselect.rowIndex(i)
+            const srcColIndex = cselect.colIndex(j)
+            const toldCell = this.getCell(rindex, cindex)
+            const srcCell = this.getCell(srcRowIndex, srcColIndex)
+            if (srcCell) {
+              // handler merge
+              const tCell = Object.assign({}, srcCell);
+              // console.log('::::::::srcCell:', srcCell);
+              if (srcCell.merge) {
+                const [m1, m2] = srcCell.merge
+                tCell.merge = [m1 + rindex - srcRowIndex, m2 + cindex - srcColIndex];
+              }
+              if (toldCell && toldCell.text) {
+                tCell.text = toldCell.text
+              }
+              // console.log('::::::::tCell:', tCell);
+              const tcell = this.cell(rindex, cindex, tCell)
+              cb(rindex, cindex, tcell)
             }
-            cb(rindex, cindex, tcell)
           }
-        }
-      })
+        })
+      } else if (copy === 'all') {
+        cselect.forEach((rindex, cindex, i, j, rowspan, colspan) => {
+          if (this.select) {
+            const destRowIndex = this.select.rowIndex(i)
+            const destColIndex = this.select.colIndex(j)
+            const srcCell = this.getCell(rindex, cindex)
+            const destCell = this.getCell(destRowIndex, destColIndex)
+            if (srcCell) {
+              // handler merge
+              const tCell = Object.assign({}, srcCell);
+              if (srcCell.merge) {
+                const [m1, m2] = srcCell.merge
+                tCell.merge = [m1 + destRowIndex - rindex, m2 + destColIndex - cindex];
+              }
+              const tcell = this.cell(rindex, cindex, tCell)
+              cb(rindex, cindex, tcell)
+            }
+          }
+        })
+      }
+
     }
   }
 

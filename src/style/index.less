@@ -138,6 +138,12 @@ body {
 .spreadsheet-borders {
   box-sizing: content-box;
 
+  &.dashed {
+    border: 2px dashed rgb(75, 137, 255);
+    position: absolute;
+    background: rgba(75, 137, 255, 0.03);
+  }
+
   .left-border, .right-border, .bottom-border, .top-border, .area-border {
     position: absolute;
     font-size: 0;

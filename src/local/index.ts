@@ -49,45 +49,17 @@ export class LocalSpreadsheet {
 
   private toolbarChange (k: keyof Cell, v: any) {
     if (k === 'merge') {
-      this.merge();
+      this.table.merge();
       return;
     } else if (k === 'clearformat') {
-      this.clearformat();
+      this.table.clearformat();
+      return ;
+    } else if (k === 'paintformat') {
+      this.table.copyformat();
       return ;
     }
 
-    this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
-      this.table.setTdWithCell(rindex, cindex, cell, k === 'wordWrap' && v);
-    })
-    this.table.editor.setStyle(this.ss.currentCell())
-  }
-
-  private clearformat () {
-    this.ss.clearformat((rindex, cindex, cell) => {
-      this.table.td(rindex, cindex)
-        .removeAttr('rowspan')
-        .removeAttr('colspan')
-        .styles({}, true)
-        .show(true);
-    })
-  }
-
-  private merge () {
-    this.ss.merge((rindex, cindex, cell) => {
-      // console.log(rindex, cindex, '>>>', this.table.td(rindex, cindex))
-      this.table.td(rindex, cindex)
-        .attr('rowspan', cell.rowspan || 1)
-        .attr('colspan', cell.colspan || 1)
-        .show(true)
-    }, (rindex, cindex, cell) => {
-      this.table.td(rindex, cindex)
-        .attr('rowspan', 1)
-        .attr('colspan', 1)
-        .show(true)
-    }, (rindex, cindex, cell) => {
-      let td = this.table.td(rindex, cindex)
-      !cell.invisible ? td.show(true) : td.hide()
-    })
+    this.table.setCellAttr(k, v);
   }
 
   private editorbarChange (v: Cell) {

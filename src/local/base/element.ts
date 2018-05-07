@@ -123,6 +123,10 @@ export class Element {
     return this;
   }
 
+  clone (): any {
+    return this.el.cloneNode();
+  }
+
   isHide () {
     return this.style('display') === 'none'
   }

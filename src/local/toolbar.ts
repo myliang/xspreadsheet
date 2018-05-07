@@ -175,10 +175,16 @@ export class Toolbar {
     return buildItem().child(buildIcon('redo')).disabled()
   }
   private buildPaintformat (): Element {
-    return buildItem().child(buildIcon('paintformat'))
+    return buildIconItem('paintformat', (is) => { 
+      this.change('paintformat', true);
+      this.elPaintformat.deactive();
+    })
   }
   private buildClearformat (): Element {
-    return buildItem().child(buildIcon('clearformat')).on('click', (is) => this.change('clearformat', true));
+    return buildIconItem('clearformat', (is) => { 
+      this.change('clearformat', true);
+      this.elClearformat.deactive();
+    });
   }
   private buildFormats (): Dropdown {
     const clickHandler = (it: Format) => {
