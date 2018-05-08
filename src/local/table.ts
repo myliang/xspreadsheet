@@ -8,6 +8,7 @@ import { Toolbar } from "./toolbar";
 import { Cell, getStyleFromCell } from "../core/cell";
 import { formatRenderHtml } from "../core/format";
 import { formulaRender } from "../core/formula";
+import { bind } from "./event";
 
 interface Map<T> {
   [key: string]: T
@@ -63,6 +64,27 @@ export class Table {
       this.header = this.buildHeader(),
       this.buildBody()
     ]);
+
+    // bind ctrl + c, ctrl + x, ctrl + v
+    bind('keydown', (evt: any) => {
+      if (evt.ctrlKey) {
+        // ctrl + c
+        if (evt.keyCode === 67) {
+          this.copy();
+          evt.returnValue = false
+        }
+        // ctrl + x
+        if (evt.keyCode === 88) {
+          this.cut();
+          evt.returnValue = false
+        }
+        // ctrl + v
+        if (evt.keyCode === 86) {
+          this.paste();
+          evt.returnValue = false
+        }
+      }
+    });
   }
 
   setValueWithText (v: Cell) {
@@ -106,8 +128,10 @@ export class Table {
   }
 
   paste () {
+    console.log('state: ', this.state, this.ss.select)
     if (this.state !== null && this.ss.select) {
       this.ss.paste((rindex, cindex, cell) => {
+        // console.log('rindex: ', rindex, ', cindex: ', cindex);
         let td = this.td(rindex, cindex);
         this.setTdStyles(rindex, cindex, cell);
         this.setTdAttrs(rindex, cindex, cell);
@@ -196,7 +220,9 @@ export class Table {
   }
 
   private selectorChange () {
-    this.paste();
+    if (this.state === 'copyformat') {
+      this.paste();
+    }
   }
 
   private changeRowHeight (index: number, h: number) {

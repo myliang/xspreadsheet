@@ -139,7 +139,7 @@ export class Spreadsheet {
             const srcCell = this.getCell(srcRowIndex, srcColIndex)
             if (srcCell) {
               // handler merge
-              const tCell = Object.assign({}, srcCell);
+              let tCell = Object.assign({}, srcCell);
               // console.log('::::::::srcCell:', srcCell);
               if (srcCell.merge) {
                 const [m1, m2] = srcCell.merge
@@ -149,30 +149,32 @@ export class Spreadsheet {
                 tCell.text = toldCell.text
               }
               // console.log('::::::::tCell:', tCell);
-              const tcell = this.cell(rindex, cindex, tCell)
-              cb(rindex, cindex, tcell)
+              tCell = this.cell(rindex, cindex, tCell)
+              cb(rindex, cindex, tCell)
             }
           }
         })
       } else if (copy === 'all') {
         cselect.forEach((rindex, cindex, i, j, rowspan, colspan) => {
           if (this.select) {
-            const destRowIndex = this.select.rowIndex(i)
-            const destColIndex = this.select.colIndex(j)
+            const destRowIndex = this.select.start[0] + i
+            const destColIndex = this.select.start[1] + j
             const srcCell = this.getCell(rindex, cindex)
-            const destCell = this.getCell(destRowIndex, destColIndex)
+            // const destCell = this.getCell(destRowIndex, destColIndex)
             if (srcCell) {
               // handler merge
-              const tCell = Object.assign({}, srcCell);
+              let tCell = Object.assign({}, srcCell);
               if (srcCell.merge) {
                 const [m1, m2] = srcCell.merge
                 tCell.merge = [m1 + destRowIndex - rindex, m2 + destColIndex - cindex];
               }
-              const tcell = this.cell(rindex, cindex, tCell)
-              cb(rindex, cindex, tcell)
+              tCell = this.cell(destRowIndex, destColIndex, tCell)
+              // console.log('tCell::', tCell)
+              cb(destRowIndex, destColIndex, tCell)
             }
           }
         })
+        // console.log('dat:', this.data)
       }
 
     }
