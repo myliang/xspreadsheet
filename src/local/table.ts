@@ -67,6 +67,7 @@ export class Table {
 
     // bind ctrl + c, ctrl + x, ctrl + v
     bind('keydown', (evt: any) => {
+      // ctrlKey
       if (evt.ctrlKey) {
         // ctrl + c
         if (evt.keyCode === 67) {
