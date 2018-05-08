@@ -138,7 +138,13 @@ export class Table {
         if (this.state === 'cut' || this.state === 'copy') {
           td.html(this.renderCell(cell));
         }
-      }, this.state === 'copyformat' ? 'style' : 'all');
+      }, this.state, (rindex, cindex, cell) => {
+        let td = this.td(rindex, cindex);
+        this.setTdStyles(rindex, cindex, cell);
+        this.setTdAttrs(rindex, cindex, cell);
+        td.html('');
+      });
+      this.selector.reload();
     }
 
     if (this.state === 'copyformat') {

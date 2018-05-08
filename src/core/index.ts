@@ -123,14 +123,14 @@ export class Spreadsheet {
   cut (): void {
     this.cutSelect = this.select
   }
-  paste (cb: (rindex: number, cindex: number, cell: Cell) => void, copy: 'all' | 'style' = 'all'): void {
+  paste (cb: StandardCallback, state: 'copy' | 'cut' | 'copyformat', clear: StandardCallback): void {
     let cselect = this.copySelect
     if (this.cutSelect) {
       cselect = this.cutSelect
       this.cutSelect = null
     }
     if (cselect && this.select) {
-      if (copy === 'style') {
+      if (state === 'copyformat') {
         this.select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
           if (cselect) {
             const srcRowIndex = cselect.rowIndex(i)
@@ -148,13 +148,11 @@ export class Spreadsheet {
               if (toldCell && toldCell.text) {
                 tCell.text = toldCell.text
               }
-              // console.log('::::::::tCell:', tCell);
-              tCell = this.cell(rindex, cindex, tCell)
-              cb(rindex, cindex, tCell)
+              cb(rindex, cindex, this.cell(rindex, cindex, tCell))
             }
           }
         })
-      } else if (copy === 'all') {
+      } else {
         cselect.forEach((rindex, cindex, i, j, rowspan, colspan) => {
           if (this.select) {
             const destRowIndex = this.select.start[0] + i
@@ -168,9 +166,12 @@ export class Spreadsheet {
                 const [m1, m2] = srcCell.merge
                 tCell.merge = [m1 + destRowIndex - rindex, m2 + destColIndex - cindex];
               }
-              tCell = this.cell(destRowIndex, destColIndex, tCell)
+              // cut
+              if (state === 'cut') {
+                clear(rindex, cindex, this.cell(rindex, cindex, {}))
+              }
               // console.log('tCell::', tCell)
-              cb(destRowIndex, destColIndex, tCell)
+              cb(destRowIndex, destColIndex, this.cell(destRowIndex, destColIndex, tCell))
             }
           }
         })
