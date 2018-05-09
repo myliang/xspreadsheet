@@ -1,4 +1,4 @@
-import { alphabetIndex } from "./alphabet";
+import { alphabetIndex, alphabet } from "./alphabet";
 
 export interface Formula {
   key: string;
@@ -21,6 +21,27 @@ export const formulaFilterKey = (v: string, filter: (formula: Formula, param: st
 export const formulaRender = (v: string, renderCell: (rindex: number, cindex: number) => any) => {
   return formulaFilterKey(v, (fx, param) => {
     return fx.render(formulaParamToArray(param, renderCell)) + '';
+  })
+}
+
+export const formulaReplaceParam = (param: string, rowDiff: number, colDiff: number): string => {
+  return formulaFilterKey(param, (fx, params) => {
+    const replaceFormula = (_v: string):string => {
+      const idx = /\d+/.exec(_v)
+      if (idx) {
+        let vc = _v.substring(0, idx.index)
+        let vr = parseInt(_v.substring(idx.index))
+        return `${alphabet(alphabetIndex(vc) + colDiff)}${vr + rowDiff}`
+      }
+      return _v;
+    }
+
+    if (params.indexOf(':') !== -1) {
+      params = params.split(':').map(replaceFormula).join(':')
+    } else {
+      params = params.split(',').map(replaceFormula).join(',')
+    }
+    return `=${fx.key}(${params})`
   })
 }
 

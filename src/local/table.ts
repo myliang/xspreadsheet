@@ -48,6 +48,9 @@ export class Table {
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
     this.selector = new Selector(this.ss, this);
     this.selector.change = () => this.selectorChange();
+    this.selector.changeCopy = (e, arrow, startRow, startCol, stopRow, stopCol) => {
+      this.selectorChangeCopy(e, arrow, startRow, startCol, stopRow, stopCol);
+    }
     this.dashedSelector = new DashedSelector();
 
     if (bodyHeightFn) {
@@ -129,7 +132,7 @@ export class Table {
   }
 
   paste () {
-    console.log('state: ', this.state, this.ss.select)
+    // console.log('state: ', this.state, this.ss.select)
     if (this.state !== null && this.ss.select) {
       this.ss.paste((rindex, cindex, cell) => {
         // console.log('rindex: ', rindex, ', cindex: ', cindex);
@@ -186,6 +189,20 @@ export class Table {
     return td
   }
 
+  private selectorChange () {
+    if (this.state === 'copyformat') {
+      this.paste();
+    }
+  }
+
+  private selectorChangeCopy (evt: any, arrow: 'bottom' | 'top' | 'left' | 'right', startRow: number, startCol: number, stopRow: number, stopCol: number) {
+    this.ss.batchPaste(arrow, startRow, startCol, stopRow, stopCol, evt.ctrlKey, (rindex, cindex, cell) => {
+      this.setTdStyles(rindex, cindex, cell);
+      this.setTdAttrs(rindex, cindex, cell);
+      this.td(rindex, cindex).html(this.renderCell(cell));
+    })
+  }
+
   private renderCell (cell: Cell | null): string {
     if (cell) {
       return formatRenderHtml(cell.format, this._renderCell(cell))
@@ -224,12 +241,6 @@ export class Table {
     return this.td(rindex, cindex)
       .attr('rowspan', cell.rowspan || 1)
       .attr('colspan', cell.colspan || 1);
-  }
-
-  private selectorChange () {
-    if (this.state === 'copyformat') {
-      this.paste();
-    }
   }
 
   private changeRowHeight (index: number, h: number) {

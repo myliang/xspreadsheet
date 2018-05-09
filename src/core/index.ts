@@ -1,6 +1,6 @@
 import { Format, formats } from './format'
 import { Font, fonts } from './font'
-import { Formula, formulas } from './formula'
+import { Formula, formulas, formulaReplaceParam } from './formula'
 import { Cell, defaultCell } from './cell'
 import { alphabet } from './alphabet'
 import { Select } from './select'
@@ -135,21 +135,7 @@ export class Spreadsheet {
           if (cselect) {
             const srcRowIndex = cselect.rowIndex(i)
             const srcColIndex = cselect.colIndex(j)
-            const toldCell = this.getCell(rindex, cindex)
-            const srcCell = this.getCell(srcRowIndex, srcColIndex)
-            if (srcCell) {
-              // handler merge
-              let tCell = Object.assign({}, srcCell);
-              // console.log('::::::::srcCell:', srcCell);
-              if (srcCell.merge) {
-                const [m1, m2] = srcCell.merge
-                tCell.merge = [m1 + rindex - srcRowIndex, m2 + cindex - srcColIndex];
-              }
-              if (toldCell && toldCell.text) {
-                tCell.text = toldCell.text
-              }
-              cb(rindex, cindex, this.cell(rindex, cindex, tCell))
-            }
+            this.copyCell(srcRowIndex, srcColIndex, rindex, cindex, state, cb, clear)
           }
         })
       } else {
@@ -157,27 +143,62 @@ export class Spreadsheet {
           if (this.select) {
             const destRowIndex = this.select.start[0] + i
             const destColIndex = this.select.start[1] + j
-            const srcCell = this.getCell(rindex, cindex)
-            // const destCell = this.getCell(destRowIndex, destColIndex)
-            if (srcCell) {
-              // handler merge
-              let tCell = Object.assign({}, srcCell);
-              if (srcCell.merge) {
-                const [m1, m2] = srcCell.merge
-                tCell.merge = [m1 + destRowIndex - rindex, m2 + destColIndex - cindex];
-              }
-              // cut
-              if (state === 'cut') {
-                clear(rindex, cindex, this.cell(rindex, cindex, {}))
-              }
-              // console.log('tCell::', tCell)
-              cb(destRowIndex, destColIndex, this.cell(destRowIndex, destColIndex, tCell))
-            }
+            this.copyCell(rindex, cindex, destRowIndex, destColIndex, state, cb, clear)
           }
         })
-        // console.log('dat:', this.data)
       }
 
+    }
+  }
+  batchPaste (arrow: 'bottom' | 'top' | 'left' | 'right',
+    startRow: number, startCol: number, stopRow: number, stopCol: number,
+    seqCopy: boolean,
+    cb: StandardCallback) {
+    if (this.select) {
+      for (let i = startRow; i <= stopRow; i++) {
+        for (let j = startCol; j <= stopCol; j++) {
+          const srcRowIndex = this.select.rowIndex(i - startRow)
+          const srcColIndex = this.select.colIndex(j - startCol)
+          this.copyCell(srcRowIndex, srcColIndex, i, j, seqCopy ? 'seqCopy' : 'copy', cb, () => {})
+        }
+      }
+    }
+  }
+  private copyCell (srcRowIndex: number, srcColIndex: number, destRowIndex: number, destColIndex: number,
+    state: 'seqCopy' | 'copy' | 'cut' | 'copyformat', cb: StandardCallback, clear: StandardCallback) {
+    const srcCell = this.getCell(srcRowIndex, srcColIndex)
+    const rowDiff = destRowIndex - srcRowIndex
+    const colDiff = destColIndex - srcColIndex
+    if (srcCell) {
+      let oldDestCell = this.getCell(destRowIndex, destColIndex)
+      // let destCell = cellCopy(srcCell, destRowIndex - srcRowIndex, destColIndex - srcColIndex, state === 'seqCopy')
+      const destCell = Object.assign({}, srcCell)
+      if (srcCell.merge) {
+        const [m1, m2] = srcCell.merge
+        destCell.merge = [m1 + rowDiff, m2 + colDiff];
+      }
+      
+
+      if (state === 'cut') {
+        clear(srcRowIndex, srcColIndex, this.cell(srcRowIndex, srcColIndex, {}))
+      }
+      if (state === 'copyformat') {
+        if (oldDestCell && oldDestCell.text) {
+          destCell.text = oldDestCell.text
+        }
+      } else {
+        const txt = destCell.text
+        if (txt && !/^\s*$/.test(txt)) {
+          if (/^\d*$/.test(txt) && state === 'seqCopy') {
+            destCell.text = (parseInt(txt) + (destRowIndex - srcRowIndex) + (destColIndex - srcColIndex)) + ''
+          } else if (txt.indexOf('=') !== -1) {
+            // 如果text的内容是formula,那么需要需要修改表达式参数
+            destCell.text = formulaReplaceParam(txt, rowDiff, colDiff)
+          }
+        }
+      }
+
+      cb(destRowIndex, destColIndex, this.cell(destRowIndex, destColIndex, destCell))
     }
   }
 

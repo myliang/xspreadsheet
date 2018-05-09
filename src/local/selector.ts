@@ -18,8 +18,8 @@ export class Selector {
   endTarget: any;
 
   change: () => void = () => {};
-  changeCopy: (arrow: 'bottom' | 'top' | 'left' | 'right', startRow: number, startCol: number, stopRow: number, stopCol: number) => void 
-    = (arrow, startRow, startCol, stopRow, stopCol) => {};
+  changeCopy: (evt: any, arrow: 'bottom' | 'top' | 'left' | 'right', startRow: number, startCol: number, stopRow: number, stopCol: number) => void 
+    = (evt, arrow, startRow, startCol, stopRow, stopCol) => {};
 
   constructor (public ss: Spreadsheet, public table: Table) {
     this.topEl = h().class('top-border');
@@ -99,12 +99,12 @@ export class Selector {
         // console.log(rdiff, cdiff, ',,,', _rdiff, _cdiff)
         if (rdiff < 0) {
           // bottom
-          // console.log('FCK=>bottom')
+          // console.log('FCK=>bottom', this.rowsHeight(stopRow, stopRow + Math.abs(rdiff)), rdiff)
           this.copyEl.styles({
             left: `${left - 1}px`,
             top: `${top - 1}px`,
             width: `${width - 1}px`,
-            height: `${this.rowsHeight(stopRow, stopRow + Math.abs(rdiff)) - 1}px`});
+            height: `${this.rowsHeight(stopRow - select.rowLen() + 1, stopRow + Math.abs(rdiff)) - 1}px`});
           boxRange = ['bottom', stopRow + 1, startCol, stopRow + Math.abs(rdiff), stopCol]
         } else if (cdiff < 0) {
           // right
@@ -112,7 +112,7 @@ export class Selector {
           this.copyEl.styles({
             left: `${left - 1}px`,
             top: `${top - 1}px`,
-            width: `${this.colsWidth(stopCol, stopCol + Math.abs(cdiff)) - 1}px`,
+            width: `${this.colsWidth(stopCol - select.colLen() + 1, stopCol + Math.abs(cdiff)) - 1}px`,
             height: `${height - 1}px`});
           boxRange = ['right', startRow, stopCol + 1, stopRow, stopCol + Math.abs(cdiff)]
         } else if (_rdiff > 0) {
@@ -148,7 +148,7 @@ export class Selector {
       this.copyEl.hide()
       if (boxRange !== null) {
         const [arrow, startRow, startCol, stopRow, stopCol] = boxRange
-        this.changeCopy(arrow, startRow, startCol, stopRow, stopCol)
+        this.changeCopy(e, arrow, startRow, startCol, stopRow, stopCol)
       }
     });
   }
