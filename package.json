@@ -1,8 +1,14 @@
 {
   "name": "spreadsheet",
-  "version": "1.0.0.beta",
+  "version": "1.0.0",
   "description": "spreadsheet",
+  "author": "myliang <liangyuliang0335@126.com>",
+  "private": false,
   "main": "src/main.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myliang/spreadsheet.git"
+  },
   "scripts": {
     "dev": "webpack-dev-server --color --inline --hot --config webpack.config.dev.js --open",
     "build": "webpack --config webpack.config.js --progress --color"
@@ -14,7 +20,6 @@
     "ui",
     "spreadsheet"
   ],
-  "author": "myliang",
   "license": "MIT",
   "devDependencies": {
     "awesome-typescript-loader": "^5.0.0",
