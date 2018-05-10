@@ -14,7 +14,7 @@ npm install spreadsheet -S
 ## Quick Start
 
 ``` javascript
-import spreadsheet from 'spreadsheet'
+import spreadsheet from 'xspreadsheet'
 
 spreadsheet(document.getElementById('#id'))
 ```
