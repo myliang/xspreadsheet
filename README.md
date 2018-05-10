@@ -43,7 +43,7 @@ xspreadsheet(document.getElementById('#id'), {d: data})
 
 <p align="center">
   <a href="https://github.com/myliang/xspreadsheet">
-    <img width="250" src="/docs/demo.png?raw=true">
+    <img width="100%" src="/docs/demo.png?raw=true">
   </a>
 </p>
 
