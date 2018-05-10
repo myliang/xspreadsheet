@@ -22,6 +22,10 @@ const x = xspreadsheet(document.getElementById('#id'))
 x.change = (data) => {
   console.log('data:', data)
 }
+
+// edit
+// data is param in the change method
+xspreadsheet(document.getElementById('#id'), {d: data})
 ```
 
 ### in tsconfig.json
