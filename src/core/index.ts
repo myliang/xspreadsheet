@@ -18,7 +18,17 @@ interface Map<T> {
 interface MapS<T> {
   [key: string]: T
 }
-interface SpreadsheetData {
+class History {
+  values: Array<[Array<any>, any, any]> = [];
+  constructor (public type: 'rows' | 'cols' | 'cells') {}
+  add (keys: Array<any>, value: any, oldValue: any) {
+    this.values.push([keys, value, oldValue])
+  }
+}
+// types
+type StandardCallback = (rindex: number, cindex: number, cell: Cell) => void;
+
+export interface SpreadsheetData {
   rowHeight?: number;
   colWidth?: number;
   rows?: Map<Row>;
@@ -27,8 +37,6 @@ interface SpreadsheetData {
   cells?: Map<Map<Cell>>;
   [prop: string]: any
 }
-
-type StandardCallback = (rindex: number, cindex: number, cell: Cell) => void;
 
 export interface SpreadsheetOptions {
   formats?: Array<Format>;
@@ -42,12 +50,14 @@ export class Spreadsheet {
   fonts: Array<Font>;
   formulas: Array<Formula>;
   data: SpreadsheetData;
-  private histories: Array<MapS<any>> = [];
-  private histories2: Array<MapS<any>> = [];
+  private histories: Array<History> = [];
+  private histories2: Array<History> = [];
   private currentCellIndexes: [number, number] = [0, 0];
   select: Select | null = null;
   private copySelect: Select | null = null;
   private cutSelect: Select | null = null;
+
+  change: (data: SpreadsheetData) => void = () => {}
 
   constructor (options: SpreadsheetOptions = {}) {
     this.formats = options.formats || formats
@@ -130,12 +140,14 @@ export class Spreadsheet {
       this.cutSelect = null
     }
     if (cselect && this.select) {
+      const history = new History('cells')
       if (state === 'copyformat') {
         this.select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
           if (cselect) {
             const srcRowIndex = cselect.rowIndex(i)
             const srcColIndex = cselect.colIndex(j)
-            this.copyCell(srcRowIndex, srcColIndex, rindex, cindex, state, cb, clear)
+            const [oldCell, newCell] = this.copyCell(srcRowIndex, srcColIndex, rindex, cindex, state, cb, clear)
+            history.add([rindex, cindex], oldCell, newCell)
           }
         })
       } else {
@@ -143,11 +155,13 @@ export class Spreadsheet {
           if (this.select) {
             const destRowIndex = this.select.start[0] + i
             const destColIndex = this.select.start[1] + j
-            this.copyCell(rindex, cindex, destRowIndex, destColIndex, state, cb, clear)
+            const [oldCell, newCell] = this.copyCell(rindex, cindex, destRowIndex, destColIndex, state, cb, clear)
+            history.add([destRowIndex, destColIndex], oldCell, newCell)
           }
         })
       }
-
+      this.histories.push(history)
+      this.change(this.data)
     }
   }
   batchPaste (arrow: 'bottom' | 'top' | 'left' | 'right',
@@ -155,17 +169,21 @@ export class Spreadsheet {
     seqCopy: boolean,
     cb: StandardCallback) {
     if (this.select) {
+      const history = new History('cells')
       for (let i = startRow; i <= stopRow; i++) {
         for (let j = startCol; j <= stopCol; j++) {
           const srcRowIndex = this.select.rowIndex(i - startRow)
           const srcColIndex = this.select.colIndex(j - startCol)
-          this.copyCell(srcRowIndex, srcColIndex, i, j, seqCopy ? 'seqCopy' : 'copy', cb, () => {})
+          const [oldDestCell, destCell] = this.copyCell(srcRowIndex, srcColIndex, i, j, seqCopy ? 'seqCopy' : 'copy', cb, () => {})
+          history.add([i, j], oldDestCell, destCell)
         }
       }
+      this.histories.push(history)
+      this.change(this.data)
     }
   }
   private copyCell (srcRowIndex: number, srcColIndex: number, destRowIndex: number, destColIndex: number,
-    state: 'seqCopy' | 'copy' | 'cut' | 'copyformat', cb: StandardCallback, clear: StandardCallback) {
+    state: 'seqCopy' | 'copy' | 'cut' | 'copyformat', cb: StandardCallback, clear: StandardCallback): [Cell | null, Cell | null] {
     const srcCell = this.getCell(srcRowIndex, srcColIndex)
     const rowDiff = destRowIndex - srcRowIndex
     const colDiff = destColIndex - srcColIndex
@@ -199,51 +217,94 @@ export class Spreadsheet {
       }
 
       cb(destRowIndex, destColIndex, this.cell(destRowIndex, destColIndex, destCell))
+      return [oldDestCell, destCell];
     }
+    return [null, null];
   }
 
-  redo (): void {
+  isRedo (): boolean {
+    return this.histories2.length > 0
+  }
+  redo (cb: StandardCallback): boolean {
     const { histories, histories2 } = this
     if (histories2.length > 0) {
       const history = histories2.pop()
       if (history) {
-        this.setDataByHistory(history)
+        this.resetByHistory(history, cb, 'redo')
         histories.push(history)
+        this.change(this.data)
       }
     }
+    return this.isRedo()
   }
 
-  undo (): void {
+  isUndo (): boolean {
+    return this.histories.length > 0
+  }
+  undo (cb: StandardCallback): boolean {
     const { histories, histories2 } = this
+    // console.log('histories:', histories, histories2)
     if (histories.length > 0) {
       const history = histories.pop()
       if (history) {
-        this.setDataByHistory(history)
+        this.resetByHistory(history, cb, 'undo')
         histories2.push(history)
+        this.change(this.data)
       }
     }
+    return this.isUndo()
   }
 
-  setDataByHistory (history: MapS<any>) {
-    Object.keys(history).forEach(k => {
-      let tmp = this.data
-      k.split('.').forEach(prop => {
-        tmp = this.data[prop]
-      })
-      tmp = history[k]
+  resetByHistory (v: History, cb: StandardCallback, state: 'undo' | 'redo') {
+    // console.log('history: ', history)
+    v.values.forEach(([keys, oldValue, value]) => {
+      if (v.type === 'cells') {
+        const v = state === 'undo' ? oldValue : value
+        const oldCell = this.getCell(keys[0], keys[1])
+        if (oldCell === null) {
+          if (keys.length === 3) {
+            if (v !== undefined) {
+              const nValue: Cell = {}
+              nValue[keys[2]] = v
+              cb(keys[0], keys[1], this.cell(keys[0], keys[1], nValue))
+            }
+          } else {
+            if (v !== undefined) {
+              cb(keys[0], keys[1], this.cell(keys[0], keys[1], v))
+            }
+          }
+        } else {
+          if (keys.length === 3) {
+            const nValue: Cell = {}
+            nValue[keys[2]] = v
+            if (v !== undefined) {
+              cb(keys[0], keys[1], this.cell(keys[0], keys[1], nValue, true))
+            } else {
+              cb(keys[0], keys[1], this.cell(keys[0], keys[1], mapFilter(oldCell, keys[2])))
+            }
+          } else {
+            cb(keys[0], keys[1], this.cell(keys[0], keys[1], v || {}))
+          }
+        }
+      }
+      // console.log('keys:', keys, ', oldValue:', oldValue, ', value:', value)
     })
   }
 
   clearformat (cb: StandardCallback) {
     const { select } = this
     if (select !== null) {
+      const history = new History('cells')
       select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
         let c = this.getCell(rindex, cindex);
         if (c) {
+          history.add([rindex, cindex], c, {text: c.text})
           c = this.cell(rindex, cindex, {text: c.text});
           cb(rindex, cindex, c);
         }
       });
+      this.histories.push(history)
+      this.change(this.data)
     }
   }
 
@@ -258,6 +319,7 @@ export class Spreadsheet {
     // console.log('data.before: ', this.data)
     if (select !== null && select.cellLen() > 1) {
       // merge merge: [rows[0], cols[0]]
+      const history = new History('cells')
       let index = 0
       let firstXY: [number, number] = [0, 0]
       select.forEach((rindex, cindex, i, j, rowspan, colspan) => {
@@ -268,40 +330,77 @@ export class Spreadsheet {
           if (colspan > 1) v.colspan = colspan
           // console.log('rowspan:', rowspan, ', colspan:', colspan, select.canMerge)
           if (select.canMerge) {
+            history.add([rindex, cindex, 'rowspan'], undefined, rowspan)
+            history.add([rindex, cindex, 'colspan'], undefined, colspan)
+
             let cell = this.cell(rindex, cindex, v, true)
             ok(rindex, cindex, cell)
           } else {
-            let cell = this.cell(rindex, cindex, mapFilter(this.getCell(rindex, cindex), 'rowspan', 'colspan', 'merge'))
-            cancel(rindex, cindex, cell)
+            const oldCell = this.getCell(rindex, cindex)
+            if (oldCell !== null) {
+              history.add([rindex, cindex, 'rowspan'], oldCell.rowspan, undefined)
+              history.add([rindex, cindex, 'colspan'], oldCell.colspan, undefined)
+
+              let cell = this.cell(rindex, cindex, mapFilter(oldCell, 'rowspan', 'colspan', 'merge'))
+              cancel(rindex, cindex, cell)
+            }
           }
         } else {
           let v: Cell = {invisible: select.canMerge}
           if (select.canMerge) {
+            history.add([rindex, cindex, 'invisible'], undefined, select.canMerge)
+
             v.merge = firstXY
             let cell = this.cell(rindex, cindex, v, true)
             other(rindex, cindex, cell)
           } else {
-            let cell = this.cell(rindex, cindex, mapFilter(this.getCell(rindex, cindex), 'rowspan', 'colspan', 'merge', 'invisible'))
-            other(rindex, cindex, cell)
+            const oldCell = this.getCell(rindex, cindex)
+            if (oldCell !== null) {
+              history.add([rindex, cindex, 'invisible'], oldCell.invisible, undefined)
+              let cell = this.cell(rindex, cindex, mapFilter(oldCell, 'rowspan', 'colspan', 'merge', 'invisible'))
+              other(rindex, cindex, cell)
+            }
           }
         }
       })
+      this.histories.push(history)
       select.canMerge = !select.canMerge
-      // console.log('data:', this.data)
+      this.change(this.data)
     }
   }
   cellAttr (key: keyof Cell, value: any, cb: StandardCallback): void {
-    let v: Cell= {}, history: MapS<any> = {}
+    let v: Cell= {}
     v[key] = value
     const isDefault = value === this.data.cell[key]
     if (this.select !== null) {
+      const history = new History('cells')
       this.select.forEach((rindex, cindex) => {
-        let cell = this.cell(rindex, cindex, isDefault ? mapFilter(this.getCell(rindex, cindex), key) : v, !isDefault)
+        const oldCell = this.getCell(rindex, cindex)
+        
+        history.add([rindex, cindex, key], oldCell !== null ? oldCell[key] : undefined, value)
+        let cell = this.cell(rindex, cindex, isDefault ? mapFilter(oldCell, key) : v, !isDefault)
         cb(rindex, cindex, cell)
-        history[`${rindex}.${cindex}.${key}`] = value
+      
       })
       this.histories.push(history)
     }
+    this.change(this.data)
+  }
+  cellText (value: any, cb: StandardCallback): Cell | null {
+    if (this.currentCellIndexes) {
+      // this.addHistoryValues()
+      const history = new History('cells')
+      const [rindex, cindex] = this.currentCellIndexes
+      const oldCell = this.getCell(rindex, cindex)
+      history.add([rindex, cindex, 'text'], oldCell !== null ? oldCell.text : undefined, value)
+      const cell = this.cell(rindex, cindex, {text: value}, true)
+      cb(rindex, cindex, cell)
+
+      this.histories.push(history)
+      this.change(this.data)
+      return cell;
+    }
+    return null
   }
   currentCell (indexes?: [number, number]): Cell | null {
     if (indexes !== undefined) {

@@ -30,14 +30,27 @@ export class LocalSpreadsheet {
 
     this.toolbar = new Toolbar(this.ss);
     this.toolbar.change = (key, v) => this.toolbarChange(key, v)
+    this.toolbar.undo = () => {
+      // console.log('undo::')
+      return this.table.undo()
+    }
+    this.toolbar.redo = () => {
+      // console.log('redo::')
+      return this.table.redo()
+    }
 
     this.table = new Table(this.ss, options.bodyHeight);
+    this.table.change = (data) => {
+      // console.log('table.change>>>>', this.ss.isRedo())
+      this.toolbar.setRedoAble(this.ss.isRedo())
+      this.toolbar.setUndoAble(this.ss.isUndo())
+    }
     this.table.editorChange = (v) => this.editorChange(v)
     this.table.clickCell = (rindex, cindex, cell) => this.clickCell(rindex, cindex, cell)
     this.render();
   }
 
-  render (): void {
+  private render (): void {
     this.el.appendChild(h().class('spreadsheet').children([
       h().class('spreadsheet-bars').children([
         this.toolbar.el,

@@ -1,5 +1,5 @@
 import { Element, h } from "./base/element";
-import { Spreadsheet } from '../core/index'
+import { Spreadsheet, SpreadsheetData } from '../core/index'
 import { Editor } from './editor';
 import { Selector, DashedSelector } from './selector';
 import { Resizer } from './resizer';
@@ -38,11 +38,16 @@ export class Table {
   bodyHeight: () => number;
 
   // change
+  change: (data: SpreadsheetData) => void = () => {}
   editorChange: (v: Cell) => void = (v) => {}
   clickCell: (rindex: number, cindex: number, v: Cell | null) => void = (rindex, cindex, v) => {}
 
   constructor (ss: Spreadsheet, bodyHeightFn?: () => number) {
     this.ss = ss;
+    this.ss.change = (data) => {
+      this.change(data)
+    }
+
     this.editor = new Editor(ss.defaultRowHeight())
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
@@ -94,8 +99,9 @@ export class Table {
   setValueWithText (v: Cell) {
     // console.log('setValueWithText: v = ', v)
     if (this.currentIndexs) {
-      this.ss.cell(this.currentIndexs[0], this.currentIndexs[1], v, true);
-      this.td(this.currentIndexs[0], this.currentIndexs[1]).html(this.renderCell(v));
+      this.ss.cellText(v.text, (rindex, cindex, cell) => {
+        this.td(rindex, cindex).html(this.renderCell(cell))
+      })
     }
     this.editor.setValue(v)
   }
@@ -111,6 +117,24 @@ export class Table {
       this.setTdWithCell(rindex, cindex, cell, k === 'wordWrap' && v);
     })
     this.editor.setStyle(this.ss.currentCell())
+  }
+
+  undo (): boolean {
+    return this.ss.undo((rindex, cindex, cell) => {
+      // console.log('>', rindex, ',', cindex, '::', cell)
+      this.setTdStylesAndAttrsAndText(rindex, cindex, cell)
+    })
+  }
+  redo (): boolean {
+    return this.ss.redo((rindex, cindex, cell) => {
+      this.setTdStylesAndAttrsAndText(rindex, cindex, cell)
+    })
+  }
+  private setTdStylesAndAttrsAndText (rindex: number, cindex: number, cell: Cell) {
+    let td = this.td(rindex, cindex);
+    this.setTdStyles(rindex, cindex, cell);
+    this.setTdAttrs(rindex, cindex, cell);
+    td.html(this.renderCell(cell));
   }
 
   copy () {
@@ -334,20 +358,17 @@ export class Table {
   private buildBody () {
     const rows = this.ss.rows();
     const cols = this.ss.cols();
-    
-    // this.editor.onChange((v) => {
-    //   this.td(this.currentIndexs[0], this.currentIndexs[1]).html(v.text)
-    //   this.editorChange(v)
-    //   // this.editorbar.setValue(v)
-    // })
 
     const mousedown = (rindex: number, cindex: number, evt: any) => {
       this.selector.mousedown(evt)
       const editorValue = this.editor.value
       if (this.currentIndexs && this.editor.target && editorValue) {
-        const oldCell = this.ss.cell(this.currentIndexs[0], this.currentIndexs[1], editorValue, true);
-        const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
-        oldTd.html(this.renderCell(editorValue))
+        // console.log(':::editorValue:', editorValue)
+        const oldCell = this.ss.cellText(editorValue.text, (_rindex, _cindex, _cell: Cell) => {
+          this.td(_rindex, _cindex).html(this.renderCell(_cell))
+        });
+        // const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
+        // oldTd.html(this.renderCell(editorValue))
         if (oldCell) {
           // 设置内容之后，获取高度设置行高
           if (oldCell.wordWrap) {

@@ -8,7 +8,7 @@ export function alphabet(index: number): string {
 export function alphabetIndex (key: string): number {
   let ret = 0;
   for (let i = 0; i < key.length; i++) {
-    console.log(key.charCodeAt(i), key[i])
+    // console.log(key.charCodeAt(i), key[i])
     let cindex = key.charCodeAt(i) - 65;
     ret += i * _alphabet.length + cindex;
   }

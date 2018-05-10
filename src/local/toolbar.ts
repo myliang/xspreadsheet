@@ -18,7 +18,7 @@ export class Toolbar {
   currentCell: Cell | null = null;
 
   elUndo: Element;
-  elReod: Element;
+  elRedo: Element;
   elPaintformat: Element;
   elClearformat: Element;
   elFormat: Dropdown;
@@ -33,7 +33,10 @@ export class Toolbar {
   elAlign: Dropdown;
   elValign: Dropdown;
   elWordWrap: Element;
+
   change: (key: keyof Cell, v: any) => void = (key, v) => {}
+  redo: () => boolean = () => false
+  undo: () => boolean = () => false
 
   constructor (public ss: Spreadsheet) {
     this.defaultCell = ss.data.cell
@@ -41,7 +44,7 @@ export class Toolbar {
     this.el = h().class('spreadsheet-toolbar').child(
         buildMenu('horizontal').children([
           this.elUndo = this.buildUndo(),
-          this.elReod = this.buildRedo(),
+          this.elRedo = this.buildRedo(),
           this.elPaintformat = this.buildPaintformat(),
           this.elClearformat = this.buildClearformat(),
           this.elFormat = this.buildFormats(),
@@ -100,6 +103,14 @@ export class Toolbar {
         this.elMerge.active(false);
       }
     }
+  }
+
+  setRedoAble (flag: boolean) {
+    flag ? this.elRedo.able() : this.elRedo.disabled()
+  }
+
+  setUndoAble (flag: boolean) {
+    flag ? this.elUndo.able() : this.elUndo.disabled()
   }
 
   private buildSeparator (): Element {
@@ -169,10 +180,18 @@ export class Toolbar {
       [buildColorPanel(clickHandler)])
   }
   private buildUndo (): Element {
-    return buildItem().child(buildIcon('undo')).disabled()
+    return buildItem().child(buildIcon('undo'))
+      .on('click', (evt) => {
+        this.undo() ? this.elUndo.able() : this.elUndo.disabled()
+      })
+      .disabled()
   }
   private buildRedo (): Element {
-    return buildItem().child(buildIcon('redo')).disabled()
+    return buildItem().child(buildIcon('redo'))
+      .on('click', (evt) => {
+        this.redo() ? this.elRedo.able() : this.elRedo.disabled()
+      })
+      .disabled()
   }
   private buildPaintformat (): Element {
     return buildIconItem('paintformat', (is) => { 
