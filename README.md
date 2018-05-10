@@ -39,6 +39,13 @@ xspreadsheet(document.getElementById('#id'), {d: data})
 }
 
 ```
+### images
+
+<p align="center">
+  <a href="https://github.com/myliang/xspreadsheet">
+    <img width="250" src="/docs/demo.png?raw=true">
+  </a>
+</p>
 
 ## Browser Support
 Modern browsers and Internet Explorer 9+(no test).
