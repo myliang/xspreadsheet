@@ -1,8 +1,9 @@
+var ExtractTextPlugin = require('extract-text-webpack-plugin');
 module.exports = {
   entry: "./src/main.ts",
   output: {
       filename: "xspreadsheet.js",
-      path: __dirname + "/dist"
+      path: __dirname + "/docs"
   },
 
   // Enable sourcemaps for debugging webpack's output.
@@ -23,6 +24,9 @@ module.exports = {
           { enforce: "pre", test: /\.js$/, loader: "source-map-loader" }
       ]
   },
+  plugins: [
+    new ExtractTextPlugin("xspreadsheet.css")
+  ]
 
   // When importing a module whose path matches one of the following, just
   // assume a corresponding global variable exists and use that instead.
