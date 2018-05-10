@@ -1,4 +1,4 @@
-# Spreadsheet
+# XSpreadsheet
 
 [![npm package](https://img.shields.io/npm/v/xspreadsheet.svg)](https://www.npmjs.org/package/xspreadsheet)
 [![NPM downloads](http://img.shields.io/npm/dm/xspreadsheet.svg)](https://npmjs.org/package/xspreadsheet)
