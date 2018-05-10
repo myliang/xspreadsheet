@@ -1,9 +1,15 @@
 # Spreadsheet
 
-[![npm package](https://img.shields.io/npm/v/spreadsheet.svg)](https://www.npmjs.org/package/spreadsheet)
-[![NPM downloads](http://img.shields.io/npm/dm/spreadsheet.svg)](https://npmjs.org/package/spreadsheet)
+[![npm package](https://img.shields.io/npm/v/xspreadsheet.svg)](https://www.npmjs.org/package/xspreadsheet)
+[![NPM downloads](http://img.shields.io/npm/dm/xspreadsheet.svg)](https://npmjs.org/package/xspreadsheet)
 
 > a javascript spreadsheet for web
+
+<p align="center">
+  <a href="https://github.com/myliang/xspreadsheet">
+    <img width="100%" src="/docs/demo.png?raw=true">
+  </a>
+</p>
 
 ## Install
 ```shell
@@ -39,13 +45,6 @@ xspreadsheet(document.getElementById('#id'), {d: data})
 }
 
 ```
-### images
-
-<p align="center">
-  <a href="https://github.com/myliang/xspreadsheet">
-    <img width="100%" src="/docs/demo.png?raw=true">
-  </a>
-</p>
 
 ## Browser Support
 Modern browsers and Internet Explorer 9+(no test).
