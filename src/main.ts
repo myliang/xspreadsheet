@@ -1,10 +1,10 @@
-import { LocalSpreadsheet, Options } from './local/index'
+import { LocalSpreadsheet, Options } from './local/index';
 
 export default function spreadsheet (el: HTMLElement, options: Options) {
   return new LocalSpreadsheet(el, options)
 }
 
-declare global{
+declare global {
   interface Window {
     spreadsheet: any;
   }

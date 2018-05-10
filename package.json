@@ -1,10 +1,11 @@
 {
   "name": "xspreadsheet",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "spreadsheet",
   "author": "myliang <liangyuliang0335@126.com>",
   "private": false,
-  "main": "src/main.ts",
+  "main": "dist/xspreadsheet.js",
+  "types": "dist/main.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/myliang/spreadsheet.git"
@@ -30,6 +31,7 @@
     "less-loader": "^4.1.0",
     "source-map-loader": "^0.2.3",
     "style-loader": "^0.20.3",
+    "tslint-eslint-rules": "^5.2.0",
     "typescript": "^2.8.1",
     "webpack": "^4.5.0",
     "webpack-cli": "^2.0.14",

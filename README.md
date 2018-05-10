@@ -7,8 +7,9 @@
 
 ## Install
 ```shell
-npm install ts-loader -S
-npm install spreadsheet -S
+npm install typescript --save-dev
+npm install awesome-typescript-loader --save-dev
+npm install xspreadsheet --save-dev
 ```
 
 ## Quick Start
