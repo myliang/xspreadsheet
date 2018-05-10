@@ -18,7 +18,10 @@ npm install @types/xspreadsheet --save-dev
 ``` javascript
 import xspreadsheet from 'xspreadsheet'
 
-xspreadsheet(document.getElementById('#id'))
+const x = xspreadsheet(document.getElementById('#id'))
+x.change = (data) => {
+  console.log('data:', data)
+}
 ```
 
 ### in tsconfig.json
