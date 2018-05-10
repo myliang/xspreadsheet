@@ -1,4 +1,4 @@
-import { Spreadsheet, SpreadsheetOptions } from '../core/index'
+import { Spreadsheet, SpreadsheetOptions, SpreadsheetData } from '../core/index'
 import '../style/index.less'
 import { Cell, getStyleFromCell } from '../core/cell';
 import { Format } from '../core/format';
@@ -22,6 +22,8 @@ export class LocalSpreadsheet {
   toolbar: Toolbar;
   editorbar: Editorbar;
 
+  change: (data: SpreadsheetData) => void = () => {}
+
   constructor (public el: HTMLElement, options: Options = {}) {
     this.ss = new Spreadsheet(options.d || {});
     // console.log('::::>>>select:', this.ss.select)
@@ -41,9 +43,9 @@ export class LocalSpreadsheet {
 
     this.table = new Table(this.ss, options.bodyHeight);
     this.table.change = (data) => {
-      // console.log('table.change>>>>', this.ss.isRedo())
       this.toolbar.setRedoAble(this.ss.isRedo())
       this.toolbar.setUndoAble(this.ss.isUndo())
+      this.change(data)
     }
     this.table.editorChange = (v) => this.editorChange(v)
     this.table.clickCell = (rindex, cindex, cell) => this.clickCell(rindex, cindex, cell)
