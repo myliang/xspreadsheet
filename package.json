@@ -1,8 +1,8 @@
 {
   "name": "spreadsheet",
-  "version": "1.0.0",
+  "version": "1.0.0.beta",
   "description": "spreadsheet",
-  "main": "index.js",
+  "main": "src/main.ts",
   "scripts": {
     "dev": "webpack-dev-server --color --inline --hot --config webpack.config.dev.js --open",
     "build": "webpack --config webpack.config.js --progress --color"
@@ -20,6 +20,7 @@
     "awesome-typescript-loader": "^5.0.0",
     "css-loader": "^0.28.11",
     "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "file-loader": "^1.1.11",
     "less": "^3.0.1",
     "less-loader": "^4.1.0",
     "source-map-loader": "^0.2.3",

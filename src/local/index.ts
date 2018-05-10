@@ -10,7 +10,7 @@ import { Toolbar } from './toolbar';
 import { Editorbar } from './editorbar';
 import { h, Element } from './base/element'
 
-interface Options {
+export interface Options {
   d?: SpreadsheetOptions;
   bodyHeight?: () => number;
 }
@@ -90,10 +90,3 @@ export class LocalSpreadsheet {
   }
 
 }
-
-declare global{
-  interface Window {
-    spreadsheet: any;
-  }
-}
-window.spreadsheet = LocalSpreadsheet
