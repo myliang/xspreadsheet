@@ -10,14 +10,27 @@
 npm install typescript --save-dev
 npm install awesome-typescript-loader --save-dev
 npm install xspreadsheet --save-dev
+npm install @types/xspreadsheet --save-dev
 ```
 
 ## Quick Start
 
 ``` javascript
-import spreadsheet from 'xspreadsheet'
+import xspreadsheet from 'xspreadsheet'
 
-spreadsheet(document.getElementById('#id'))
+xspreadsheet(document.getElementById('#id'))
+```
+
+### in tsconfig.json
+```
+{
+  "compilerOptions": {
+    ....
+    "types": ["xspreadsheet"],
+    ....
+  }
+}
+
 ```
 
 ## Browser Support

@@ -1,4 +1,4 @@
-import { Spreadsheet, SpreadsheetOptions } from '../core/index';
+import { Spreadsheet, SpreadsheetOptions, SpreadsheetData } from '../core/index';
 import '../style/index.less';
 import { Table } from './table';
 import { Toolbar } from './toolbar';
@@ -16,6 +16,7 @@ export declare class LocalSpreadsheet {
     table: Table;
     toolbar: Toolbar;
     editorbar: Editorbar;
+    change: (data: SpreadsheetData) => void;
     constructor(el: HTMLElement, options?: Options);
     private render();
     private toolbarChange(k, v);
