@@ -312,7 +312,7 @@ export class Table {
     return h().class('spreadsheet-fixed')
     .style('width', '60px')
     .children([
-      h().class('spreadsheet-header').child(h('table').child(
+      h().class('spreadsheet-fixed-header').child(h('table').child(
         h('thead').child(
           h('tr').child(
             h('th').child('-')
@@ -320,8 +320,8 @@ export class Table {
         ),
       )),
       this.fixedLeftBody = 
-      h().class('spreadsheet-body')
-      .style('height', `${this.bodyHeight() - 15}px`)
+      h().class('spreadsheet-fixed-body')
+      .style('height', `${this.bodyHeight() - 18}px`)
       .children([
         h('table').child(
           h('tbody').children(

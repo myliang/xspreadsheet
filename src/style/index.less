@@ -9,6 +9,7 @@ body {
   font-size: 14px;
   line-height: normal;
   user-select: none;
+  -moz-user-select: none;
   font-family: Roboto, Helvetica, Arial, sans-serif;
 
   .spreadsheet-table {
@@ -20,9 +21,13 @@ body {
     top: 0;
     left: 0;
     z-index: 10;
+    background: #fff;
 
-    .spreadsheet-body {
+    .spreadsheet-fixed-body {
       overflow: hidden;
+    }
+    .spreadsheet-fixed-header {
+      overflow: hidden;  
     }
   }
 
@@ -32,6 +37,7 @@ body {
   }
   .spreadsheet-header {
     overflow: hidden;
+    width: 100%;
   }
 
   .spreadsheet-header, .spreadsheet-body, .spreadsheet-fixed {
@@ -104,6 +110,7 @@ body {
     white-space: normal;
     word-wrap: break-word;
     line-height: 22px;
+    margin: 0;
   }
 }
 
@@ -240,6 +247,7 @@ body {
     overflow-y: hidden;
     border: none;
     outline-width: 0;
+    margin: 0;
   }
 }
 .spreadsheet-formula-bar-resizer {
