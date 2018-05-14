@@ -38,7 +38,6 @@ export class Selector {
       this.cornerEl,
       this.copyEl
     ])
-    bind('keydown', (evt: Event) => { this.keydown(evt) })
   }
 
   mousedown (evt: any) {
@@ -51,8 +50,9 @@ export class Selector {
         this.setOffset()
         return
       }
-      Object.assign(this, {startTarget: evt.target, endTarget: evt.target})
-      this.setOffset()
+      // Object.assign(this, {startTarget: evt.target, endTarget: evt.target})
+      // this.setOffset()
+      this.setCurrentTarget(evt.target)
 
       mouseMoveUp((e: any) => {
         if (e.buttons === 1 && e.target.getAttribute('type') === 'cell') {
@@ -63,18 +63,9 @@ export class Selector {
     }
   }
 
-  private keydown (evt: any) {
-    // up, down, left, right
-    switch (evt.keyCode) {
-      case 37: // left
-        break;
-      case 38: // up
-        break;
-      case 39: // right
-        break;
-      case 40: // down
-        break;
-    }
+  setCurrentTarget (target: HTMLElement) {
+    Object.assign(this, {startTarget: target, endTarget: target})
+    this.setOffset()
   }
 
   private cornerMousedown (evt: any) {

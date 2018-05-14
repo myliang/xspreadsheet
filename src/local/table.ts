@@ -20,6 +20,7 @@ export class Table {
   tds: Map<Element> = {};
   ths: Map<Element> = {};
   ss: Spreadsheet;
+  formulaCellIndexs: Set<string> = new Set(); // 表达式单元格set
 
   el: Element;
   header: Element;
@@ -48,7 +49,7 @@ export class Table {
       this.change(data)
     }
 
-    this.editor = new Editor(ss.defaultRowHeight())
+    this.editor = new Editor(ss.defaultRowHeight(), ss.formulas)
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
     this.selector = new Selector(this.ss, this);
@@ -92,15 +93,90 @@ export class Table {
           this.paste();
           evt.returnValue = false
         }
+      } else {
+
+        if (evt.target.type === 'textarea') {
+          if (evt.keyCode === 9) {
+            this.moveRight()
+            this.currentIndexs && this.editCell(this.currentIndexs[0], this.currentIndexs[1])
+            evt.returnValue = false
+          }
+          return ;
+        }
+        console.log('>>>>>>>>>>>>>>', evt)
+        switch (evt.keyCode) {
+          case 37: // left
+            this.moveLeft()
+            evt.returnValue = false
+            break;
+          case 38: // up
+            this.moveUp()
+            evt.returnValue = false
+            break;
+          case 39: // right
+            this.moveRight()
+            evt.returnValue = false
+            break;
+          case 40: // down
+            this.moveDown()
+            evt.returnValue = false
+            break;
+          case 9: // table
+            this.moveRight();
+            evt.returnValue = false
+            break;
+        }
+
+        // 输入a-zA-Z1-9
+        if (evt.keyCode >= 65 && evt.keyCode <= 90 || evt.keyCode >= 48 && evt.keyCode <= 57 || evt.keyCode >= 96 && evt.keyCode <= 105) {
+          this.currentIndexs && this.editCell(this.currentIndexs[0], this.currentIndexs[1])        
+        }
+
       }
+      
     });
+  }
+
+  private moveLeft () {
+    if (this.currentIndexs && this.currentIndexs[1] > 0) {
+      this.currentIndexs[1] -= 1
+      this.moveSelector()
+    }
+  }
+  private moveUp () {
+    if (this.currentIndexs && this.currentIndexs[0] > 0) {
+      this.currentIndexs[0] -= 1
+      this.moveSelector()
+    }
+  }
+  private moveDown () {
+    if (this.currentIndexs && this.currentIndexs[1] < this.ss.rows().length) {
+      this.currentIndexs[0] += 1
+      this.moveSelector()
+    }
+  }
+  private moveRight () {
+    if (this.currentIndexs && this.currentIndexs[0] < this.ss.cols().length) {
+      this.currentIndexs[1] += 1
+      this.moveSelector()
+    }
+  }
+
+  // 移动选框
+  private moveSelector () {
+    if (this.currentIndexs) {
+      const [rindex, cindex] = this.currentIndexs
+      const td = this.td(rindex, cindex)
+      td && this.selector.setCurrentTarget(td.el)
+      this.mousedownCell(rindex, cindex)
+    }
   }
 
   setValueWithText (v: Cell) {
     // console.log('setValueWithText: v = ', v)
     if (this.currentIndexs) {
       this.ss.cellText(v.text, (rindex, cindex, cell) => {
-        this.td(rindex, cindex).html(this.renderCell(cell))
+        this.td(rindex, cindex).html(this.renderCell(rindex, cindex, cell))
       })
     }
     this.editor.setValue(v)
@@ -109,7 +185,7 @@ export class Table {
   setTdWithCell (rindex: number, cindex: number, cell: Cell, autoWordWrap = true) {
     this.setTdStyles(rindex, cindex, cell);
     this.setRowHeight(rindex, cindex, autoWordWrap);
-    this.td(rindex, cindex).html(this.renderCell(cell));
+    this.td(rindex, cindex).html(this.renderCell(rindex, cindex, cell));
   }
 
   setCellAttr (k: keyof Cell, v: any) {
@@ -134,7 +210,7 @@ export class Table {
     let td = this.td(rindex, cindex);
     this.setTdStyles(rindex, cindex, cell);
     this.setTdAttrs(rindex, cindex, cell);
-    td.html(this.renderCell(cell));
+    td.html(this.renderCell(rindex, cindex, cell));
   }
 
   copy () {
@@ -164,7 +240,7 @@ export class Table {
         this.setTdStyles(rindex, cindex, cell);
         this.setTdAttrs(rindex, cindex, cell);
         if (this.state === 'cut' || this.state === 'copy') {
-          td.html(this.renderCell(cell));
+          td.html(this.renderCell(rindex, cindex, cell));
         }
       }, this.state, (rindex, cindex, cell) => {
         let td = this.td(rindex, cindex);
@@ -223,12 +299,23 @@ export class Table {
     this.ss.batchPaste(arrow, startRow, startCol, stopRow, stopCol, evt.ctrlKey, (rindex, cindex, cell) => {
       this.setTdStyles(rindex, cindex, cell);
       this.setTdAttrs(rindex, cindex, cell);
-      this.td(rindex, cindex).html(this.renderCell(cell));
+      this.td(rindex, cindex).html(this.renderCell(rindex, cindex, cell));
     })
   }
 
-  private renderCell (cell: Cell | null): string {
+  private renderCell (rindex: number, cindex: number, cell: Cell | null): string {
     if (cell) {
+      const setKey = `${rindex}_${cindex}`
+      console.log('text:', setKey, cell.text && cell.text)
+      if (cell.text && cell.text[0] === '=') {
+        this.formulaCellIndexs.add(setKey)
+      } else {
+        if (this.formulaCellIndexs.has(setKey)) {
+          this.formulaCellIndexs.delete(setKey)
+        }
+
+        this.reRenderFormulaCells()
+      }
       return formatRenderHtml(cell.format, this._renderCell(cell))
     }
     return '';
@@ -239,6 +326,17 @@ export class Table {
       return formulaRender(text, (rindex, cindex) => this._renderCell(this.ss.getCell(rindex, cindex)))
     }
     return '';
+  }
+  private reRenderFormulaCells () {
+    console.log('formulaCellIndex: ', this.formulaCellIndexs)
+    this.formulaCellIndexs.forEach(it => {
+      let rcindexes = it.split('_')
+      const rindex = parseInt(rcindexes[0])
+      const cindex = parseInt(rcindexes[1])
+      console.log('>>>', this.ss.data, this.ss.getCell(rindex, cindex))
+      const text = this.renderCell(rindex, cindex, this.ss.getCell(rindex, cindex))
+      this.td(rindex, cindex).html(text);
+    })
   }
 
   private setRowHeight (rindex: number, cindex: number, autoWordWrap: boolean) {
@@ -355,40 +453,49 @@ export class Table {
     ])
   }
 
+  private mousedownCell (rindex: number, cindex: number) {
+    const editorValue = this.editor.value
+    if (this.currentIndexs && this.editor.target && editorValue) {
+      // console.log(':::editorValue:', editorValue)
+      const oldCell = this.ss.cellText(editorValue.text, (_rindex, _cindex, _cell: Cell) => {
+        this.td(_rindex, _cindex).html(this.renderCell(_rindex, _cindex, _cell))
+      });
+      // const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
+      // oldTd.html(this.renderCell(editorValue))
+      if (oldCell) {
+        // 设置内容之后，获取高度设置行高
+        if (oldCell.wordWrap) {
+          this.setRowHeight(this.currentIndexs[0], this.currentIndexs[1], true)
+        }
+        // console.log('old.td.offset:', oldTd.offset().height)
+        this.editorChange(oldCell)
+      }
+    }
+    this.editor.clear()
+
+    this.currentIndexs = [rindex, cindex]
+    const cCell = this.ss.currentCell([rindex, cindex])
+    this.clickCell(rindex, cindex, cCell)
+  }
+
+  private editCell(rindex: number, cindex: number) {
+    const td = this.td(rindex, cindex)
+    this.editor.set(td.el, this.ss.currentCell())
+  }
+
   private buildBody () {
     const rows = this.ss.rows();
     const cols = this.ss.cols();
 
     const mousedown = (rindex: number, cindex: number, evt: any) => {
+      // console.log('mousedown: ', rindex, ',', cindex)
       this.selector.mousedown(evt)
-      const editorValue = this.editor.value
-      if (this.currentIndexs && this.editor.target && editorValue) {
-        // console.log(':::editorValue:', editorValue)
-        const oldCell = this.ss.cellText(editorValue.text, (_rindex, _cindex, _cell: Cell) => {
-          this.td(_rindex, _cindex).html(this.renderCell(_cell))
-        });
-        // const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
-        // oldTd.html(this.renderCell(editorValue))
-        if (oldCell) {
-          // 设置内容之后，获取高度设置行高
-          if (oldCell.wordWrap) {
-            this.setRowHeight(this.currentIndexs[0], this.currentIndexs[1], true)
-          }
-          // console.log('old.td.offset:', oldTd.offset().height)
-          this.editorChange(oldCell)
-        }
-      }
-      this.editor.clear()
-
-      this.currentIndexs = [rindex, cindex]
-      const cCell = this.ss.currentCell([rindex, cindex])
-      this.clickCell(rindex, cindex, cCell)
+      this.mousedownCell(rindex, cindex)
       // console.log('>>>>>>>>><<<<')
     }
 
     const dblclick = (rindex: number, cindex: number) => {
-      const td = this.td(rindex, cindex)
-      this.editor.set(td.el, this.ss.currentCell())
+      this.editCell(rindex, cindex)
     }
 
     const scrollFn = (evt: any) => {
@@ -405,7 +512,7 @@ export class Table {
         ...cols.map((col, cindex) => {
           let cell = this.ss.getCell(rindex, cindex)
           let td = h('td')
-            .child(this.renderCell(cell))
+            .child(this.renderCell(rindex, cindex, cell))
             .attr('type', 'cell')
             .attr('row-index', rindex + '')
             .attr('col-index', cindex + '')

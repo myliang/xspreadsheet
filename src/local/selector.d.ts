@@ -24,7 +24,7 @@ export declare class Selector {
     changeCopy: (evt: any, arrow: 'bottom' | 'top' | 'left' | 'right', startRow: number, startCol: number, stopRow: number, stopCol: number) => void;
     constructor(ss: Spreadsheet, table: Table);
     mousedown(evt: any): void;
-    private keydown(evt);
+    setCurrentTarget(target: HTMLElement): void;
     private cornerMousedown(evt);
     reload(): void;
     private setOffset();

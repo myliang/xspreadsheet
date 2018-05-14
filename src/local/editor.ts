@@ -1,5 +1,7 @@
 import { Element, h } from "./base/element";
+import { Suggest } from "./base/suggest";
 import { Cell, getStyleFromCell } from "../core/cell"
+import { Formula } from "../core/formula";
 
 export class Editor {
   el: Element;
@@ -8,15 +10,30 @@ export class Editor {
   editor: Element;
   textarea: Element;
   textline: Element; // 计算输入文本的宽度用的element
-  change: (v: Cell) => void = (v) => {};
-  constructor (public defaultRowHeight: number) {
+  suggest: Suggest; // autocomplete show
 
+  change: (v: Cell) => void = (v) => {};
+  constructor (public defaultRowHeight: number, public formulas : Array<Formula>) {
+    const suggestList: any = formulas.map(it => [it.key, it.title])
     this.el = h().children([this.editor = h().class('spreadsheet-editor').children([
         this.textarea = h('textarea')
           .on('input', (evt: Event) => this.inputChange(evt)),
         this.textline = h().styles({visibility: 'hidden', overflow: 'hidden', position: 'fixed', top: '0', left: '0'})
       ])
-    ]).hide()
+    , this.suggest = new Suggest(suggestList, 180)])
+
+    this.suggest.itemClick = (it) => {
+      console.log('>>>>>>>>>>>>', it)
+      const text = `=${it[0]}()`;
+      if (this.value) {
+        this.value.text = text
+      }
+      this.textarea.val(text);
+      this.textline.html(text);
+      this.setTextareaRange(text.length - 1)
+      // (<any>this.textarea.el).setSelectionRange(text.length + 1, text.length + 1);
+      // setTimeout(() => (<any>this.textarea.el).focus(), 10)
+    }
   }
 
   onChange (change: (v: Cell) => void) {
@@ -28,8 +45,9 @@ export class Editor {
     this.target = target;
     const text = this.setValue(value)
     this.el.show();
-    (<any>this.textarea.el).setSelectionRange(text.length, text.length);
-    setTimeout(() => (<any>this.textarea.el).focus(), 10)
+    this.setTextareaRange(text.length)
+    // (<any>this.textarea.el).setSelectionRange(text.length, text.length);
+    // setTimeout(() => (<any>this.textarea.el).focus(), 10)
     this.reload();
   }
 
@@ -59,6 +77,13 @@ export class Editor {
     this.textline.html('')
   }
 
+  private setTextareaRange (position: number) {
+    setTimeout(() => {
+      (<any>this.textarea.el).setSelectionRange(position, position);
+      (<any>this.textarea.el).focus()
+    }, 10)
+  }
+
   private inputChange (evt: any) {
     const v = evt.target.value
     if (!/^\s*$/.test(v)) {
@@ -67,9 +92,24 @@ export class Editor {
       } else {
         this.value = {text: v}
       }
+      this.autocomplete(v);
     }
     this.textline.html(v);
     this.reload()
+  }
+
+  private autocomplete (v: string) {
+    if (v[0] === '=') {
+      if (!v.includes('(')) {
+        const search = v.substring(1)
+        console.log(':::;search word:', search)
+        this.suggest.search(this.editor, search);
+      } else {
+        this.suggest.hide()
+      }
+    } else {
+      this.suggest.hide()
+    }
   }
 
   reload () {
