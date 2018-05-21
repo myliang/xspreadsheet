@@ -220,6 +220,7 @@ export class Table {
     let td = this.td(rindex, cindex);
     this.setTdStyles(rindex, cindex, cell);
     this.setTdAttrs(rindex, cindex, cell);
+    // console.log('txt>>>:', this.renderCell(rindex, cindex, cell))
     td.html(this.renderCell(rindex, cindex, cell));
   }
 
@@ -291,6 +292,13 @@ export class Table {
     }, (rindex, cindex, cell) => {
       let td = this.td(rindex, cindex)
       !cell.invisible ? td.show(true) : td.hide()
+    })
+  }
+
+  // insert
+  insert (type: 'row' | 'col', amount: number) {
+    this.ss.insert(type, amount, (rindex, cindex, cell) => {
+      this.setTdStylesAndAttrsAndText(rindex, cindex, cell)
     })
   }
 

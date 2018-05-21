@@ -4,37 +4,35 @@ import { Formula, formulas, formulaReplaceParam } from './formula'
 import { Cell, defaultCell } from './cell'
 import { alphabet } from './alphabet'
 import { Select } from './select'
+import { unbind } from '../local/event';
 
-interface Row {
+export interface Row {
   height: number
 }
-interface Col {
+export interface Col {
   title: string
   width: number
 }
-interface Map<T> {
+export interface MapInt<T> {
   [key: number]: T
 }
-interface MapS<T> {
-  [key: string]: T
-}
-class History {
+export class History {
   values: Array<[Array<any>, any, any]> = [];
   constructor (public type: 'rows' | 'cols' | 'cells') {}
-  add (keys: Array<any>, value: any, oldValue: any) {
-    this.values.push([keys, value, oldValue])
+  add (keys: Array<any>, oldValue: any, value: any) {
+    this.values.push([keys, oldValue, value])
   }
 }
 // types
-type StandardCallback = (rindex: number, cindex: number, cell: Cell) => void;
+export type StandardCallback = (rindex: number, cindex: number, cell: Cell) => void;
 
 export interface SpreadsheetData {
   rowHeight?: number;
   colWidth?: number;
-  rows?: Map<Row>;
-  cols?: Map<Col>;
+  rows?: MapInt<Row>;
+  cols?: MapInt<Col>;
   cell: Cell; // global default cell
-  cells?: Map<Map<Cell>>;
+  cells?: MapInt<MapInt<Cell>>;
   [prop: string]: any
 }
 
@@ -164,6 +162,60 @@ export class Spreadsheet {
       this.change(this.data)
     }
   }
+  insert (type: 'row' | 'col', amount: number, cb: StandardCallback) {
+    if (this.select) {
+      const { cells } = this.data
+      const [srindex, scindex] = this.select.start
+      if (!cells) return
+
+      // console.log('insert.before.data:', cells)
+      const history = new History('cells')
+      if (type === 'row') {
+        const newCells: MapInt<MapInt<Cell>> = {}
+        Object.keys(cells).forEach(key => {
+          let rindex = parseInt(key)
+          let values = cells[rindex]
+          if (srindex <= rindex) {
+            Object.keys(values).forEach(key1 => {
+              let cindex = parseInt(key1)
+              // clear current cell
+              cb(rindex, cindex, {})
+              history.add([rindex, cindex], values[cindex], undefined)
+            
+              // set next cell is current celll
+              cb(rindex + 1, cindex, values[cindex] || {})
+              history.add([rindex + 1, cindex], this.getCell(rindex + 1, cindex), values[cindex])
+            })
+          }
+          newCells[srindex <= rindex ? rindex + 1 : rindex] = cells[rindex]
+        })
+        this.data.cells = newCells
+      } else if (type === 'col') {
+        Object.keys(cells).forEach(key => {
+          let rindex = parseInt(key)
+          let values = cells[rindex]
+          let newCell: MapInt<Cell> = {}
+          Object.keys(values).forEach(key1 => {
+            let cindex = parseInt(key1)
+            if (scindex <= cindex) {
+              // clear 当前cell
+              cb(rindex, cindex, {})
+              history.add([rindex, cindex], values[cindex], undefined)
+            
+              // 设置下一个cell 等于当前的cell
+              cb(rindex, cindex + 1, values[cindex] || {})
+              history.add([rindex, cindex + 1], this.getCell(rindex, cindex + 1), values[cindex])
+            }
+            newCell[scindex <= cindex ? cindex + 1 : cindex] = values[cindex]
+          })
+          cells[rindex] = newCell
+        })
+      }
+      this.histories.push(history)
+      // console.log('insert.after.data:', this.data.cells)
+    } 
+  }
+
   batchPaste (arrow: 'bottom' | 'top' | 'left' | 'right',
     startRow: number, startCol: number, stopRow: number, stopCol: number,
     seqCopy: boolean,
@@ -261,26 +313,24 @@ export class Spreadsheet {
       if (v.type === 'cells') {
         const v = state === 'undo' ? oldValue : value
         const oldCell = this.getCell(keys[0], keys[1])
-        if (oldCell === null) {
+        if (!oldCell) {
           if (keys.length === 3) {
-            if (v !== undefined) {
+            if (v) {
               const nValue: Cell = {}
               nValue[keys[2]] = v
               cb(keys[0], keys[1], this.cell(keys[0], keys[1], nValue))
             }
           } else {
-            if (v !== undefined) {
-              cb(keys[0], keys[1], this.cell(keys[0], keys[1], v))
-            }
+            cb(keys[0], keys[1], this.cell(keys[0], keys[1], v || {}))
           }
         } else {
           if (keys.length === 3) {
             const nValue: Cell = {}
             nValue[keys[2]] = v
-            if (v !== undefined) {
+            if (v) {
               cb(keys[0], keys[1], this.cell(keys[0], keys[1], nValue, true))
             } else {
-              cb(keys[0], keys[1], this.cell(keys[0], keys[1], mapFilter(oldCell, keys[2])))
+              cb(keys[0], keys[1], this.cell(keys[0], keys[1], MapIntFilter(oldCell, keys[2])))
             }
           } else {
             cb(keys[0], keys[1], this.cell(keys[0], keys[1], v || {}))
@@ -341,7 +391,7 @@ export class Spreadsheet {
               history.add([rindex, cindex, 'rowspan'], oldCell.rowspan, undefined)
               history.add([rindex, cindex, 'colspan'], oldCell.colspan, undefined)
 
-              let cell = this.cell(rindex, cindex, mapFilter(oldCell, 'rowspan', 'colspan', 'merge'))
+              let cell = this.cell(rindex, cindex, MapIntFilter(oldCell, 'rowspan', 'colspan', 'merge'))
               cancel(rindex, cindex, cell)
             }
           }
@@ -357,7 +407,7 @@ export class Spreadsheet {
             const oldCell = this.getCell(rindex, cindex)
             if (oldCell !== null) {
               history.add([rindex, cindex, 'invisible'], oldCell.invisible, undefined)
-              let cell = this.cell(rindex, cindex, mapFilter(oldCell, 'rowspan', 'colspan', 'merge', 'invisible'))
+              let cell = this.cell(rindex, cindex, MapIntFilter(oldCell, 'rowspan', 'colspan', 'merge', 'invisible'))
               other(rindex, cindex, cell)
             }
           }
@@ -378,7 +428,7 @@ export class Spreadsheet {
         const oldCell = this.getCell(rindex, cindex)
         
         history.add([rindex, cindex, key], oldCell !== null ? oldCell[key] : undefined, value)
-        let cell = this.cell(rindex, cindex, isDefault ? mapFilter(oldCell, key) : v, !isDefault)
+        let cell = this.cell(rindex, cindex, isDefault ? MapIntFilter(oldCell, key) : v, !isDefault)
         cb(rindex, cindex, cell)
       
       })
@@ -447,7 +497,7 @@ export class Spreadsheet {
   }
   rows (): Array<Row> {
     const { data } = this;
-    let maxRow = mapMaxKey(100, data.rows);
+    let maxRow = MapIntMaxKey(100, data.rows);
     return range(maxRow, (index) => this.row(index))
   }
 
@@ -462,20 +512,20 @@ export class Spreadsheet {
   }
   cols (): Array<Col> {
     const { data } = this;
-    let maxCol = mapMaxKey(26, data.cols);
+    let maxCol = MapIntMaxKey(26, data.cols);
     return range(maxCol, (index) => this.col(index));
   }
 }
 
 // methods
-const mapMaxKey = function<T>(max: number, map: Map<T> | undefined): number {
-  if (map) {
-    const m = Math.max(...Object.keys(map).map(s => parseInt(s)))
+const MapIntMaxKey = function<T>(max: number, MapInt: MapInt<T> | undefined): number {
+  if (MapInt) {
+    const m = Math.max(...Object.keys(MapInt).map(s => parseInt(s)))
     if (m > max) return m;
   }
   return max;
 }
-const mapFilter = function(obj: any, ...keys: Array<string>): any {
+const MapIntFilter = function(obj: any, ...keys: Array<string>): any {
   const ret: any = {}
   if (obj){
     Object.keys(obj).forEach(e => {

@@ -15,8 +15,8 @@ export class ContextMenu {
         buildItem().on('click', (evt) => table.cut()).children(['cut', h().class('label').html('ctrl + x')]),
         buildItem().on('click', (evt) => table.paste()).children(['paste', h().class('label').html('ctrl + v')]),
         h().class('spreadsheet-item-separator'),
-        buildItem().html('insert row'),
-        buildItem().html('insert col')
+        buildItem().on('click', (evt) => table.insert('row', 1)).html('insert row'),
+        buildItem().on('click', (evt) => table.insert('col', 1)).html('insert col')
       ])
     ]).onClickOutside(() => {}).hide()
     // clickoutside
