@@ -11,6 +11,7 @@ export class Dropdown extends Element {
 
     this.content = h().class('spreadsheet-dropdown-content')
       .children(contentChildren)
+      .onClickOutside(() => this.deactive())
       .on('click', (evt) => this.toggleHandler(evt))
       .style('width', width).hide();
 
@@ -20,33 +21,13 @@ export class Dropdown extends Element {
     ])).child(this.content);
   }
 
-  documentHandler (e: any) {
-    if (this.content.el.contains(e.target)) {
-      return false
-    }
-    this.content.hide()
-    this.deactive()
-    document.removeEventListener('click', this.content.data('_outsidehandler'))
-  }
-
   toggleHandler (evt: Event) {
-    // evt.stopPropagation()
-    // console.log(this.content.isHide(), ">>>")
     if (this.content.isHide()){
-      const clickoutsize = (evt: Event) => {
-        this.documentHandler(evt)
-      }
-
       this.content.show()
       this.active()
-      this.content.data('_outsidehandler', clickoutsize)
-      setTimeout(() => {
-        document.addEventListener('click', clickoutsize)
-      }, 0)
     } else {
       this.content.hide()
       this.deactive()
-      document.removeEventListener('click', this.content.data('_outsidehandler'))
     }
   }
 }

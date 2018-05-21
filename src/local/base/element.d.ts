@@ -4,9 +4,11 @@ export declare class Element {
     _data: {
         [key: string]: any;
     };
+    _clickOutside: any;
     constructor(tag?: string);
     data(key: string, value?: any): any;
     on(eventName: string, handler: (evt: any) => any): Element;
+    onClickOutside(cb: () => void): Element;
     class(name: string): Element;
     attrs(map?: {
         [key: string]: string;
@@ -19,6 +21,7 @@ export declare class Element {
         [key: string]: string;
     }, isClear?: boolean): Element;
     style(key: string, value?: any): any;
+    contains(el: any): boolean;
     removeStyle(key: string): void;
     children(cs: Array<HTMLElement | string | Element>): Element;
     child(c: HTMLElement | string | Element): Element;

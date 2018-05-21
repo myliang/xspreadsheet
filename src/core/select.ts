@@ -24,6 +24,11 @@ export class Select {
   cellLen () {
     return this.rowLen() * this.colLen()
   }
+  contains (rindex: number, cindex: number) {
+    const [sx, sy] = this.start
+    const [ex, ey] = this.stop
+    return sx <= rindex && ex >= rindex && sy <= cindex && ey >= cindex
+  }
 }
 
 // export function buildSelect (start: any, end: )

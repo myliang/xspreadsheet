@@ -9,4 +9,5 @@ export declare class Select {
     rowLen(): number;
     colLen(): number;
     cellLen(): number;
+    contains(rindex: number, cindex: number): boolean;
 }

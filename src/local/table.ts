@@ -5,6 +5,7 @@ import { Selector, DashedSelector } from './selector';
 import { Resizer } from './resizer';
 import { Editorbar } from "./editorbar";
 import { Toolbar } from "./toolbar";
+import { ContextMenu } from "./contextmenu";
 import { Cell, getStyleFromCell } from "../core/cell";
 import { formatRenderHtml } from "../core/format";
 import { formulaRender } from "../core/formula";
@@ -30,6 +31,8 @@ export class Table {
   rowResizer: Resizer;
   colResizer: Resizer;
 
+  contextmenu: ContextMenu;
+
   selector: Selector;
   dashedSelector: DashedSelector;
   state: 'copy' | 'cut' | 'copyformat' | null = null;
@@ -52,6 +55,9 @@ export class Table {
     this.editor = new Editor(ss.defaultRowHeight(), ss.formulas)
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
+
+    this.contextmenu = new ContextMenu(this)
+
     this.selector = new Selector(this.ss, this);
     this.selector.change = () => this.selectorChange();
     this.selector.changeCopy = (e, arrow, startRow, startCol, stopRow, stopCol) => {
@@ -69,10 +75,14 @@ export class Table {
     this.el = h().class('spreadsheet-table').children([
       this.colResizer.el,
       this.rowResizer.el,
+      this.contextmenu.el,
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
       this.buildBody()
-    ]);
+    ]).on('contextmenu', (evt) => {
+      evt.returnValue = false
+      evt.preventDefault();
+    });
 
     // bind ctrl + c, ctrl + x, ctrl + v
     bind('keydown', (evt: any) => {
@@ -103,7 +113,7 @@ export class Table {
           }
           return ;
         }
-        console.log('>>>>>>>>>>>>>>', evt)
+        // console.log('>>>>>>>>>>>>>>', evt)
         switch (evt.keyCode) {
           case 37: // left
             this.moveLeft()
@@ -306,7 +316,7 @@ export class Table {
   private renderCell (rindex: number, cindex: number, cell: Cell | null): string {
     if (cell) {
       const setKey = `${rindex}_${cindex}`
-      console.log('text:', setKey, cell.text && cell.text)
+      // console.log('text:', setKey, cell.text && cell.text)
       if (cell.text && cell.text[0] === '=') {
         this.formulaCellIndexs.add(setKey)
       } else {
@@ -328,12 +338,12 @@ export class Table {
     return '';
   }
   private reRenderFormulaCells () {
-    console.log('formulaCellIndex: ', this.formulaCellIndexs)
+    // console.log('formulaCellIndex: ', this.formulaCellIndexs)
     this.formulaCellIndexs.forEach(it => {
       let rcindexes = it.split('_')
       const rindex = parseInt(rcindexes[0])
       const cindex = parseInt(rcindexes[1])
-      console.log('>>>', this.ss.data, this.ss.getCell(rindex, cindex))
+      // console.log('>>>', this.ss.data, this.ss.getCell(rindex, cindex))
       const text = this.renderCell(rindex, cindex, this.ss.getCell(rindex, cindex))
       this.td(rindex, cindex).html(text);
     })
@@ -488,10 +498,18 @@ export class Table {
     const cols = this.ss.cols();
 
     const mousedown = (rindex: number, cindex: number, evt: any) => {
-      // console.log('mousedown: ', rindex, ',', cindex)
+      const {select} = this.ss
+      if (evt.button === 2) {
+        // show contextmenu
+        // console.log(':::evt:', evt)
+        this.contextmenu.set(evt)
+        if (select && select.contains(rindex, cindex)) {
+          return
+        }
+      }
+      // left key
       this.selector.mousedown(evt)
       this.mousedownCell(rindex, cindex)
-      // console.log('>>>>>>>>><<<<')
     }
 
     const dblclick = (rindex: number, cindex: number) => {

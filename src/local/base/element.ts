@@ -1,6 +1,9 @@
+import { bind, unbind } from '../event'
+
 export class Element {
   el: HTMLElement;
   _data: {[key: string]: any} = {};
+  _clickOutside: any = null;
 
   constructor (public tag = 'div') {
     this.el = document.createElement(tag)
@@ -15,9 +18,12 @@ export class Element {
 
   on (eventName: string, handler: (evt: any) => any): Element {
     const [first, ...others] = eventName.split('.')
+    // console.log('first:', first, ', others:', others)
     this.el.addEventListener(first, (evt: any) => {
+      // console.log('>>>', others, evt.button)
       for (let k of others) {
-        if (k === 'left' && evt.button !== 1) {
+        console.log('::::::::::', k)
+        if (k === 'left' && evt.button !== 0) {
           return
         } else if (k === 'right' && evt.button !== 2) {
           return
@@ -25,8 +31,14 @@ export class Element {
           evt.stopPropagation()
         }
       }
+      // console.log('>>>>>>>>>>>>')
       handler(evt)
     })
+    return this;
+  }
+
+  onClickOutside (cb: () => void): Element {
+    this._clickOutside = cb
     return this;
   }
 
@@ -80,6 +92,10 @@ export class Element {
       return this.el.style.getPropertyValue(key)
     }
     return this;
+  }
+
+  contains (el: any) {
+    return this.el.contains(el)
   }
 
   removeStyle (key: string) {
@@ -181,11 +197,28 @@ export class Element {
 
   show (isRemove = false): Element {
     isRemove ? this.removeStyle('display') : this.style('display', 'block');
+    // clickoutside
+    if (this._clickOutside) {
+      this.data('_outsidehandler', (evt: Event) => {
+        if (this.contains(evt.target)) {
+          return false
+        }
+        this.hide()
+        unbind('click', this.data('_outsidehandler'))
+        this._clickOutside && this._clickOutside()
+      })
+      setTimeout(() => {
+        bind('click', this.data('_outsidehandler'))
+      }, 0)
+    }
     return this;
   }
 
   hide (): Element {
     this.style('display', 'none');
+    if (this._clickOutside) {
+      unbind('click', this.data('_outsidehandler'))
+    }
     return this;
   }
 }
