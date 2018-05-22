@@ -86,14 +86,14 @@ export class Editor {
 
   private inputChange (evt: any) {
     const v = evt.target.value
-    if (!/^\s*$/.test(v)) {
-      if (this.value) {
-        this.value.text = v
-      } else {
-        this.value = {text: v}
-      }
-      this.autocomplete(v);
+    
+    if (this.value) {
+      this.value.text = v
+    } else {
+      this.value = {text: v}
     }
+    this.autocomplete(v);
+  
     this.textline.html(v);
     this.reload()
   }
