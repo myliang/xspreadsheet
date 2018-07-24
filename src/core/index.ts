@@ -428,6 +428,7 @@ export class Spreadsheet {
         const oldCell = this.getCell(rindex, cindex)
         
         history.add([rindex, cindex, key], oldCell !== null ? oldCell[key] : undefined, value)
+        
         let cell = this.cell(rindex, cindex, isDefault ? MapIntFilter(oldCell, key) : v, !isDefault)
         cb(rindex, cindex, cell)
       
@@ -525,7 +526,7 @@ const MapIntMaxKey = function<T>(max: number, MapInt: MapInt<T> | undefined): nu
   }
   return max;
 }
-const MapIntFilter = function(obj: any, ...keys: Array<string>): any {
+const MapIntFilter = function(obj: any, ...keys: Array<any>): any {
   const ret: any = {}
   if (obj){
     Object.keys(obj).forEach(e => {
