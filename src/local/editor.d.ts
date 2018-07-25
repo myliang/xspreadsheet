@@ -19,8 +19,8 @@ export declare class Editor {
     setValue(value: Cell | null): string;
     setStyle(value: Cell | null): void;
     clear(): void;
-    private setTextareaRange(position);
-    private inputChange(evt);
-    private autocomplete(v);
+    private setTextareaRange;
+    private inputChange;
+    private autocomplete;
     reload(): void;
 }

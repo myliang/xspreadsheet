@@ -25,11 +25,11 @@ export declare class Selector {
     constructor(ss: Spreadsheet, table: Table);
     mousedown(evt: any): void;
     setCurrentTarget(target: HTMLElement): void;
-    private cornerMousedown(evt);
+    private cornerMousedown;
     reload(): void;
-    private setOffset();
-    private rowsHeight(minRow, maxRow, cb?);
-    private colsWidth(minCol, maxCol, cb?);
+    private setOffset;
+    private rowsHeight;
+    private colsWidth;
 }
 export declare class DashedSelector {
     el: Element;

@@ -25,6 +25,7 @@ export class Table {
 
   el: Element;
   header: Element;
+  body: Element;
   fixedLeftBody: Element | null = null;
 
   editor: Editor;
@@ -40,13 +41,14 @@ export class Table {
   currentIndexs: [number, number] | null = null;
 
   bodyHeight: () => number;
+  bodyWidth: () => number;
 
   // change
   change: (data: SpreadsheetData) => void = () => {}
   editorChange: (v: Cell) => void = (v) => {}
   clickCell: (rindex: number, cindex: number, v: Cell | null) => void = (rindex, cindex, v) => {}
 
-  constructor (ss: Spreadsheet, bodyHeightFn?: () => number) {
+  constructor (ss: Spreadsheet, bodyHeightFn: () => number, bodyWidthFn: () => number) {
     this.ss = ss;
     this.ss.change = (data) => {
       this.change(data)
@@ -65,24 +67,26 @@ export class Table {
     }
     this.dashedSelector = new DashedSelector();
 
-    if (bodyHeightFn) {
-      this.bodyHeight = bodyHeightFn
-    } else {
-      this.bodyHeight = (): number => {
-        return document.documentElement.clientHeight - 24 - 41 - 26
-      }
-    }
+    this.bodyHeight = bodyHeightFn
+    this.bodyWidth = bodyWidthFn
+
     this.el = h().class('spreadsheet-table').children([
       this.colResizer.el,
       this.rowResizer.el,
       this.contextmenu.el,
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
-      this.buildBody()
+      this.body = this.buildBody()
     ]).on('contextmenu', (evt) => {
       evt.returnValue = false
       evt.preventDefault();
     });
+
+    bind('resize', (evt: any) => {
+      this.header.style('width', `${this.bodyWidth()}px`)
+      this.body.style('width', `${this.bodyWidth()}px`)
+        .style('height', `${this.bodyHeight()}px`)
+    })
 
     // bind ctrl + c, ctrl + x, ctrl + v
     bind('keydown', (evt: any) => {
@@ -466,7 +470,7 @@ export class Table {
         h('th')
       ]
     ))
-    return h().class('spreadsheet-header').children([
+    return h().class('spreadsheet-header').style('width', `${this.bodyWidth()}px`).children([
       h('table').children([this.buildColGroup(15), thead])
     ])
   }
@@ -557,6 +561,7 @@ export class Table {
     return h().class('spreadsheet-body')
       .on('scroll', scrollFn)
       .style('height', `${this.bodyHeight()}px`)
+      .style('width', `${this.bodyWidth()}px`)
       .children([
         h('table').children([this.buildColGroup(0), tbody]),
         this.editor.el,

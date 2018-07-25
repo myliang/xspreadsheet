@@ -41,7 +41,13 @@ export class LocalSpreadsheet {
       return this.table.redo()
     }
 
-    this.table = new Table(this.ss, options.bodyHeight);
+    let bodyHeightFn = (): number => {
+      return document.documentElement.clientHeight - 24 - 41 - 26
+    }
+    let bodyWidthFn = (): number => {
+      return el.offsetWidth
+    }
+    this.table = new Table(this.ss, options.bodyHeight || bodyHeightFn, bodyWidthFn);
     this.table.change = (data) => {
       this.toolbar.setRedoAble(this.ss.isRedo())
       this.toolbar.setUndoAble(this.ss.isUndo())

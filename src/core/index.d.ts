@@ -56,7 +56,7 @@ export declare class Spreadsheet {
     paste(cb: StandardCallback, state: 'copy' | 'cut' | 'copyformat', clear: StandardCallback): void;
     insert(type: 'row' | 'col', amount: number, cb: StandardCallback): void;
     batchPaste(arrow: 'bottom' | 'top' | 'left' | 'right', startRow: number, startCol: number, stopRow: number, stopCol: number, seqCopy: boolean, cb: StandardCallback): void;
-    private copyCell(srcRowIndex, srcColIndex, destRowIndex, destColIndex, state, cb, clear);
+    private copyCell;
     isRedo(): boolean;
     redo(cb: StandardCallback): boolean;
     isUndo(): boolean;

@@ -20,7 +20,7 @@ export class Editor {
           .on('input', (evt: Event) => this.inputChange(evt)),
         this.textline = h().styles({visibility: 'hidden', overflow: 'hidden', position: 'fixed', top: '0', left: '0'})
       ])
-    , this.suggest = new Suggest(suggestList, 180)])
+    , this.suggest = new Suggest(suggestList, 180)]).hide()
 
     this.suggest.itemClick = (it) => {
       console.log('>>>>>>>>>>>>', it)
@@ -146,6 +146,7 @@ export class Editor {
             }
           }
         }
+        this.el.show()
       }
     // }, 0)
     

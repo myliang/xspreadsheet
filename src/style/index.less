@@ -11,6 +11,7 @@ body {
   user-select: none;
   -moz-user-select: none;
   font-family: Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: content-box;
 
   .spreadsheet-table {
     position: relative;
@@ -198,6 +199,7 @@ body {
     padding: 0 60px;
     border-bottom: @border-style;
     background: #f5f6f7;
+    overflow: hidden;
 
     >.spreadsheet-menu > .spreadsheet-item {
       margin: 7px 1px 0;

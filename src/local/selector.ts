@@ -36,8 +36,8 @@ export class Selector {
       this.leftEl,
       this.areaEl,
       this.cornerEl,
-      this.copyEl
-    ])
+      this.copyEl.hide()
+    ]).hide()
   }
 
   mousedown (evt: any) {
@@ -60,6 +60,8 @@ export class Selector {
           this.setOffset()
         }
       }, (e) => { this.change() })
+      // show el
+      this.el.show()
     }
   }
 

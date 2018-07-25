@@ -18,9 +18,9 @@ export declare class LocalSpreadsheet {
     editorbar: Editorbar;
     change: (data: SpreadsheetData) => void;
     constructor(el: HTMLElement, options?: Options);
-    private render();
-    private toolbarChange(k, v);
-    private editorbarChange(v);
-    private editorChange(v);
-    private clickCell(rindex, cindex, v);
+    private render;
+    private toolbarChange;
+    private editorbarChange;
+    private editorChange;
+    private clickCell;
 }
