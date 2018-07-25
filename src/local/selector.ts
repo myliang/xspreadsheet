@@ -36,7 +36,7 @@ export class Selector {
       this.leftEl,
       this.areaEl,
       this.cornerEl,
-      this.copyEl.hide()
+      this.copyEl.hide(),
     ]).hide()
   }
 

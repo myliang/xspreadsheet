@@ -29,10 +29,12 @@ export declare class Table {
     currentIndexs: [number, number] | null;
     bodyHeight: () => number;
     bodyWidth: () => number;
+    focusing: boolean;
     change: (data: SpreadsheetData) => void;
     editorChange: (v: Cell) => void;
     clickCell: (rindex: number, cindex: number, v: Cell | null) => void;
     constructor(ss: Spreadsheet, bodyHeightFn: () => number, bodyWidthFn: () => number);
+    reload(): void;
     private moveLeft;
     private moveUp;
     private moveDown;

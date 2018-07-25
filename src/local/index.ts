@@ -10,8 +10,7 @@ import { Toolbar } from './toolbar';
 import { Editorbar } from './editorbar';
 import { h, Element } from './base/element'
 
-export interface Options {
-  d?: SpreadsheetOptions;
+export interface Options extends SpreadsheetOptions {
   bodyHeight?: () => number;
 }
 
@@ -22,10 +21,19 @@ export class LocalSpreadsheet {
   toolbar: Toolbar;
   editorbar: Editorbar;
 
-  change: (data: SpreadsheetData) => void = () => {}
+  bindEl: HTMLElement
+  options: Options;
 
-  constructor (public el: HTMLElement, options: Options = {}) {
-    this.ss = new Spreadsheet(options.d || {});
+  _change: (data: SpreadsheetData) => void = () => {}
+
+  constructor (el: HTMLElement, options: Options = {}) {
+    this.bindEl = el
+    this.options = options
+
+    // clear content in el
+    this.bindEl.innerHTML = ''
+
+    this.ss = new Spreadsheet(options);
     // console.log('::::>>>select:', this.ss.select)
     this.editorbar = new Editorbar()
     this.editorbar.change = (v) => this.editorbarChange(v)
@@ -45,21 +53,35 @@ export class LocalSpreadsheet {
       return document.documentElement.clientHeight - 24 - 41 - 26
     }
     let bodyWidthFn = (): number => {
-      return el.offsetWidth
+      return this.bindEl.offsetWidth
     }
-    this.table = new Table(this.ss, options.bodyHeight || bodyHeightFn, bodyWidthFn);
+    this.table = new Table(this.ss, this.options.bodyHeight || bodyHeightFn, bodyWidthFn);
     this.table.change = (data) => {
       this.toolbar.setRedoAble(this.ss.isRedo())
       this.toolbar.setUndoAble(this.ss.isUndo())
-      this.change(data)
+      this._change(data)
     }
     this.table.editorChange = (v) => this.editorChange(v)
     this.table.clickCell = (rindex, cindex, cell) => this.clickCell(rindex, cindex, cell)
     this.render();
   }
 
+  loadData (data: SpreadsheetData): LocalSpreadsheet {
+    // reload until waiting main thread
+    setTimeout(() => {
+      this.ss.data = data
+      this.table.reload()
+    }, 1)
+    return this
+  }
+
+  change (cb: (data: SpreadsheetData) => void): LocalSpreadsheet {
+    this._change = cb
+    return this;
+  }
+
   private render (): void {
-    this.el.appendChild(h().class('spreadsheet').children([
+    this.bindEl.appendChild(h().class('spreadsheet').children([
       h().class('spreadsheet-bars').children([
         this.toolbar.el,
         this.editorbar.el,

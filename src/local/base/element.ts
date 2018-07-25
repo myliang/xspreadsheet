@@ -42,6 +42,10 @@ export class Element {
     return this;
   }
 
+  parent(): any {
+    return this.el.parentNode
+  }
+
   class (name: string): Element {
     this.el.className = name
     return this;

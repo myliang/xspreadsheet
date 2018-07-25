@@ -3,12 +3,10 @@ import '../style/index.less';
 import { Table } from './table';
 import { Toolbar } from './toolbar';
 import { Editorbar } from './editorbar';
-export interface Options {
-    d?: SpreadsheetOptions;
+export interface Options extends SpreadsheetOptions {
     bodyHeight?: () => number;
 }
 export declare class LocalSpreadsheet {
-    el: HTMLElement;
     ss: Spreadsheet;
     refs: {
         [key: string]: HTMLElement;
@@ -16,8 +14,12 @@ export declare class LocalSpreadsheet {
     table: Table;
     toolbar: Toolbar;
     editorbar: Editorbar;
-    change: (data: SpreadsheetData) => void;
+    bindEl: HTMLElement;
+    options: Options;
+    _change: (data: SpreadsheetData) => void;
     constructor(el: HTMLElement, options?: Options);
+    loadData(data: SpreadsheetData): LocalSpreadsheet;
+    change(cb: (data: SpreadsheetData) => void): LocalSpreadsheet;
     private render;
     private toolbarChange;
     private editorbarChange;

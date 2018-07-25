@@ -17,13 +17,14 @@ export class Editor {
     const suggestList: any = formulas.map(it => [it.key, it.title])
     this.el = h().children([this.editor = h().class('spreadsheet-editor').children([
         this.textarea = h('textarea')
+          .on('keydown', (evt: any) => this.inputKeydown(evt))
           .on('input', (evt: Event) => this.inputChange(evt)),
         this.textline = h().styles({visibility: 'hidden', overflow: 'hidden', position: 'fixed', top: '0', left: '0'})
       ])
     , this.suggest = new Suggest(suggestList, 180)]).hide()
 
     this.suggest.itemClick = (it) => {
-      console.log('>>>>>>>>>>>>', it)
+      // console.log('>>>>>>>>>>>>', it)
       const text = `=${it[0]}()`;
       if (this.value) {
         this.value.text = text
@@ -84,18 +85,26 @@ export class Editor {
     }, 10)
   }
 
+  private inputKeydown (evt: any) {
+    // console.log(':::::::::keydown...', evt.keyCode)
+    if (evt.keyCode === 13) {
+      evt.preventDefault()
+    }
+  }
+
   private inputChange (evt: any) {
     const v = evt.target.value
-    
     if (this.value) {
       this.value.text = v
     } else {
       this.value = {text: v}
     }
+    this.change(this.value)
     this.autocomplete(v);
   
     this.textline.html(v);
     this.reload()
+
   }
 
   private autocomplete (v: string) {

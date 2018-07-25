@@ -20,6 +20,7 @@ export declare class Editor {
     setStyle(value: Cell | null): void;
     clear(): void;
     private setTextareaRange;
+    private inputKeydown;
     private inputChange;
     private autocomplete;
     reload(): void;

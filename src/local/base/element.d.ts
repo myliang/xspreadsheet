@@ -9,6 +9,7 @@ export declare class Element {
     data(key: string, value?: any): any;
     on(eventName: string, handler: (evt: any) => any): Element;
     onClickOutside(cb: () => void): Element;
+    parent(): any;
     class(name: string): Element;
     attrs(map?: {
         [key: string]: string;

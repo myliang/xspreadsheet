@@ -43,6 +43,9 @@ export class Table {
   bodyHeight: () => number;
   bodyWidth: () => number;
 
+  // 当前用户是否焦点再table上
+  focusing: boolean = false;
+
   // change
   change: (data: SpreadsheetData) => void = () => {}
   editorChange: (v: Cell) => void = (v) => {}
@@ -55,6 +58,8 @@ export class Table {
     }
 
     this.editor = new Editor(ss.defaultRowHeight(), ss.formulas)
+    this.editor.change = (v: Cell) => this.editorChange(v)
+
     this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
     this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
 
@@ -88,10 +93,23 @@ export class Table {
         .style('height', `${this.bodyHeight()}px`)
     })
 
+    bind('click', (evt: any) => {
+      // console.log('::::::::', this.el.contains(evt.target))
+      this.focusing = this.el.parent().contains(evt.target)
+    })
+
     // bind ctrl + c, ctrl + x, ctrl + v
     bind('keydown', (evt: any) => {
+
+      if (!this.focusing) {
+        return
+      }
+
+      // console.log('::::::::', evt)
+      if (!this.focusing) return;
+
       // ctrlKey
-      if (evt.ctrlKey) {
+      if (evt.ctrlKey && evt.target.type !== 'textarea') {
         // ctrl + c
         if (evt.keyCode === 67) {
           this.copy();
@@ -109,14 +127,14 @@ export class Table {
         }
       } else {
 
-        if (evt.target.type === 'textarea') {
-          if (evt.keyCode === 9) {
-            this.moveRight()
-            this.currentIndexs && this.editCell(this.currentIndexs[0], this.currentIndexs[1])
-            evt.returnValue = false
-          }
-          return ;
-        }
+        // if (evt.target.type === 'textarea') {
+        //   if (evt.keyCode === 9 || evt.keyCode === 13) {
+        //     evt.keyCode === 9 ? this.moveRight() : this.moveDown()
+        //     this.currentIndexs && this.editCell(this.currentIndexs[0], this.currentIndexs[1])
+        //     evt.returnValue = false
+        //   }
+        //   return ;
+        // }
         // console.log('>>>>>>>>>>>>>>', evt)
         switch (evt.keyCode) {
           case 37: // left
@@ -135,15 +153,29 @@ export class Table {
             this.moveDown()
             evt.returnValue = false
             break;
-          case 9: // table
+          case 9: // tab
             this.moveRight();
+            evt.returnValue = false
+            break;
+          case 13:
+            this.moveDown();
             evt.returnValue = false
             break;
         }
 
         // 输入a-zA-Z1-9
         if (evt.keyCode >= 65 && evt.keyCode <= 90 || evt.keyCode >= 48 && evt.keyCode <= 57 || evt.keyCode >= 96 && evt.keyCode <= 105) {
-          this.currentIndexs && this.editCell(this.currentIndexs[0], this.currentIndexs[1])        
+          // if (this.currentIndexs) {
+          // console.log('::::::::', evt.target.type)
+          if (evt.target.type !== 'textarea') {
+            this.ss.cellText(evt.key, (rindex, cindex, cell) => {
+              const td = this.td(rindex, cindex)
+              td.html(this.renderCell(rindex, cindex, cell))
+              this.editor.set(td.el, this.ss.currentCell())
+            })
+          }
+            // this.editCell(this.currentIndexs[0], this.currentIndexs[1])
+          // }
         }
 
       }
@@ -151,6 +183,18 @@ export class Table {
     });
   }
 
+  reload () {
+    this.el.html('')
+    this.el.children([
+      this.colResizer.el,
+      this.rowResizer.el,
+      this.contextmenu.el,
+      this.buildFixedLeft(),
+      this.header = this.buildHeader(),
+      this.body = this.buildBody()
+    ]);
+  }
+  
   private moveLeft () {
     if (this.currentIndexs && this.currentIndexs[1] > 0) {
       this.currentIndexs[1] -= 1
@@ -489,8 +533,8 @@ export class Table {
         if (oldCell.wordWrap) {
           this.setRowHeight(this.currentIndexs[0], this.currentIndexs[1], true)
         }
-        // console.log('old.td.offset:', oldTd.offset().height)
-        this.editorChange(oldCell)
+        // console.log('old.td.offset:', oldCell)
+        // this.editorChange(oldCell)
       }
     }
     this.editor.clear()
@@ -522,6 +566,7 @@ export class Table {
       // left key
       this.selector.mousedown(evt)
       this.mousedownCell(rindex, cindex)
+      this.focusing = true
     }
 
     const dblclick = (rindex: number, cindex: number) => {
