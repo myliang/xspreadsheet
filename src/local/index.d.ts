@@ -4,7 +4,8 @@ import { Table } from './table';
 import { Toolbar } from './toolbar';
 import { Editorbar } from './editorbar';
 export interface Options extends SpreadsheetOptions {
-    bodyHeight?: () => number;
+    height?: () => number;
+    mode?: 'design' | 'write' | 'read';
 }
 export declare class LocalSpreadsheet {
     ss: Spreadsheet;
@@ -12,8 +13,8 @@ export declare class LocalSpreadsheet {
         [key: string]: HTMLElement;
     };
     table: Table;
-    toolbar: Toolbar;
-    editorbar: Editorbar;
+    toolbar: Toolbar | null;
+    editorbar: Editorbar | null;
     bindEl: HTMLElement;
     options: Options;
     _change: (data: SpreadsheetData) => void;

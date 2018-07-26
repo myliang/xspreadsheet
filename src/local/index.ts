@@ -11,15 +11,16 @@ import { Editorbar } from './editorbar';
 import { h, Element } from './base/element'
 
 export interface Options extends SpreadsheetOptions {
-  bodyHeight?: () => number;
+  height?: () => number;
+  mode?: 'design' | 'write' | 'read';
 }
 
 export class LocalSpreadsheet {
   ss: Spreadsheet;
   refs: {[key: string]: HTMLElement} = {};
   table: Table;
-  toolbar: Toolbar;
-  editorbar: Editorbar;
+  toolbar: Toolbar | null = null;
+  editorbar: Editorbar | null = null;
 
   bindEl: HTMLElement
   options: Options;
@@ -28,37 +29,42 @@ export class LocalSpreadsheet {
 
   constructor (el: HTMLElement, options: Options = {}) {
     this.bindEl = el
-    this.options = options
+    this.options = Object.assign({mode: 'design'}, options)
 
     // clear content in el
-    this.bindEl.innerHTML = ''
+    this.bindEl && (this.bindEl.innerHTML = '')
 
     this.ss = new Spreadsheet(options);
     // console.log('::::>>>select:', this.ss.select)
-    this.editorbar = new Editorbar()
-    this.editorbar.change = (v) => this.editorbarChange(v)
+    if (this.options.mode === 'design') {
+      this.editorbar = new Editorbar()
+      this.editorbar.change = (v) => this.editorbarChange(v)
 
-    this.toolbar = new Toolbar(this.ss);
-    this.toolbar.change = (key, v) => this.toolbarChange(key, v)
-    this.toolbar.undo = () => {
-      // console.log('undo::')
-      return this.table.undo()
-    }
-    this.toolbar.redo = () => {
-      // console.log('redo::')
-      return this.table.redo()
+      this.toolbar = new Toolbar(this.ss);
+      this.toolbar.change = (key, v) => this.toolbarChange(key, v)
+      this.toolbar.undo = () => {
+        // console.log('undo::')
+        return this.table.undo()
+      }
+      this.toolbar.redo = () => {
+        // console.log('redo::')
+        return this.table.redo()
+      }
     }
 
     let bodyHeightFn = (): number => {
+      if (this.options.height) {
+        return this.options.height()
+      }
       return document.documentElement.clientHeight - 24 - 41 - 26
     }
     let bodyWidthFn = (): number => {
       return this.bindEl.offsetWidth
     }
-    this.table = new Table(this.ss, this.options.bodyHeight || bodyHeightFn, bodyWidthFn);
+    this.table = new Table(this.ss, Object.assign({height: bodyHeightFn, width: bodyWidthFn, mode: this.options.mode}));
     this.table.change = (data) => {
-      this.toolbar.setRedoAble(this.ss.isRedo())
-      this.toolbar.setUndoAble(this.ss.isUndo())
+      this.toolbar && this.toolbar.setRedoAble(this.ss.isRedo())
+      this.toolbar && this.toolbar.setUndoAble(this.ss.isUndo())
       this._change(data)
     }
     this.table.editorChange = (v) => this.editorChange(v)
@@ -83,8 +89,8 @@ export class LocalSpreadsheet {
   private render (): void {
     this.bindEl.appendChild(h().class('spreadsheet').children([
       h().class('spreadsheet-bars').children([
-        this.toolbar.el,
-        this.editorbar.el,
+        this.toolbar && this.toolbar.el || '',
+        this.editorbar && this.editorbar.el || '',
       ]),
       this.table.el
     ]).el);
@@ -110,13 +116,13 @@ export class LocalSpreadsheet {
   }
 
   private editorChange (v: Cell) {
-    this.editorbar.setValue(v)
+    this.editorbar && this.editorbar.setValue(v)
   }
 
   private clickCell (rindex: number, cindex: number, v: Cell | null) {
     const cols = this.ss.cols()
-    this.editorbar.set(`${cols[cindex].title}${rindex + 1}`, v)
-    this.toolbar.set(this.table.td(rindex, cindex), v)
+    this.editorbar && this.editorbar.set(`${cols[cindex].title}${rindex + 1}`, v)
+    this.toolbar && this.toolbar.set(this.table.td(rindex, cindex), v)
   }
 
 }

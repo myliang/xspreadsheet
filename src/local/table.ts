@@ -15,6 +15,12 @@ interface Map<T> {
   [key: string]: T
 }
 
+export interface TableOption {
+  height: () => number,
+  width: () => number,
+  mode: 'design' | 'write' | 'read';
+}
+
 export class Table {
   cols: Map<Array<Element>> = {};
   firsttds: Map<Array<Element>> = {};
@@ -28,20 +34,17 @@ export class Table {
   body: Element;
   fixedLeftBody: Element | null = null;
 
-  editor: Editor;
-  rowResizer: Resizer;
-  colResizer: Resizer;
+  editor: Editor | null = null;
+  rowResizer: Resizer | null = null;
+  colResizer: Resizer | null = null;
 
-  contextmenu: ContextMenu;
+  contextmenu: ContextMenu | null = null;
 
   selector: Selector;
   dashedSelector: DashedSelector;
   state: 'copy' | 'cut' | 'copyformat' | null = null;
 
   currentIndexs: [number, number] | null = null;
-
-  bodyHeight: () => number;
-  bodyWidth: () => number;
 
   // 当前用户是否焦点再table上
   focusing: boolean = false;
@@ -51,19 +54,22 @@ export class Table {
   editorChange: (v: Cell) => void = (v) => {}
   clickCell: (rindex: number, cindex: number, v: Cell | null) => void = (rindex, cindex, v) => {}
 
-  constructor (ss: Spreadsheet, bodyHeightFn: () => number, bodyWidthFn: () => number) {
+  constructor (ss: Spreadsheet, public options: TableOption) {
     this.ss = ss;
     this.ss.change = (data) => {
       this.change(data)
     }
 
-    this.editor = new Editor(ss.defaultRowHeight(), ss.formulas)
-    this.editor.change = (v: Cell) => this.editorChange(v)
+    if (options.mode !== 'read') {
+      this.editor = new Editor(ss.defaultRowHeight(), ss.formulas)
+      this.editor.change = (v: Cell) => this.editorChange(v)
+    }
 
-    this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
-    this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
-
-    this.contextmenu = new ContextMenu(this)
+    if (options.mode === 'design') {
+      this.rowResizer = new Resizer(false, (index, distance) => this.changeRowResizer(index, distance))
+      this.colResizer = new Resizer(true, (index, distance) => this.changeColResizer(index, distance))
+      this.contextmenu = new ContextMenu(this)
+    }
 
     this.selector = new Selector(this.ss, this);
     this.selector.change = () => this.selectorChange();
@@ -72,13 +78,10 @@ export class Table {
     }
     this.dashedSelector = new DashedSelector();
 
-    this.bodyHeight = bodyHeightFn
-    this.bodyWidth = bodyWidthFn
-
     this.el = h().class('spreadsheet-table').children([
-      this.colResizer.el,
-      this.rowResizer.el,
-      this.contextmenu.el,
+      this.colResizer && this.colResizer.el || '',
+      this.rowResizer && this.rowResizer.el || '',
+      this.contextmenu && this.contextmenu.el || '',
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
       this.body = this.buildBody()
@@ -88,9 +91,11 @@ export class Table {
     });
 
     bind('resize', (evt: any) => {
-      this.header.style('width', `${this.bodyWidth()}px`)
-      this.body.style('width', `${this.bodyWidth()}px`)
-        .style('height', `${this.bodyHeight()}px`)
+      this.header.style('width', `${this.options.width()}px`)
+      this.body.style('width', `${this.options.width()}px`)
+      if (this.options.mode !== 'read') {
+        this.body.style('height', `${this.options.height()}px`)
+      }
     })
 
     bind('click', (evt: any) => {
@@ -109,7 +114,7 @@ export class Table {
       if (!this.focusing) return;
 
       // ctrlKey
-      if (evt.ctrlKey && evt.target.type !== 'textarea') {
+      if (evt.ctrlKey && evt.target.type !== 'textarea' && this.options.mode !== 'read') {
         // ctrl + c
         if (evt.keyCode === 67) {
           this.copy();
@@ -164,18 +169,20 @@ export class Table {
         }
 
         // 输入a-zA-Z1-9
-        if (evt.keyCode >= 65 && evt.keyCode <= 90 || evt.keyCode >= 48 && evt.keyCode <= 57 || evt.keyCode >= 96 && evt.keyCode <= 105) {
-          // if (this.currentIndexs) {
-          // console.log('::::::::', evt.target.type)
-          if (evt.target.type !== 'textarea') {
-            this.ss.cellText(evt.key, (rindex, cindex, cell) => {
-              const td = this.td(rindex, cindex)
-              td.html(this.renderCell(rindex, cindex, cell))
-              this.editor.set(td.el, this.ss.currentCell())
-            })
+        if (this.options.mode !== 'read') {
+          if (evt.keyCode >= 65 && evt.keyCode <= 90 || evt.keyCode >= 48 && evt.keyCode <= 57 || evt.keyCode >= 96 && evt.keyCode <= 105) {
+            // if (this.currentIndexs) {
+            // console.log('::::::::', evt.target.type)
+            if (evt.target.type !== 'textarea') {
+              this.ss.cellText(evt.key, (rindex, cindex, cell) => {
+                if (this.editor) {
+                  const td = this.td(rindex, cindex)
+                  td.html(this.renderCell(rindex, cindex, cell))
+                  this.editor.set(td.el, this.ss.currentCell())
+                }
+              })
+            }
           }
-            // this.editCell(this.currentIndexs[0], this.currentIndexs[1])
-          // }
         }
 
       }
@@ -186,9 +193,9 @@ export class Table {
   reload () {
     this.el.html('')
     this.el.children([
-      this.colResizer.el,
-      this.rowResizer.el,
-      this.contextmenu.el,
+      this.colResizer && this.colResizer.el || '',
+      this.rowResizer && this.rowResizer.el || '',
+      this.contextmenu && this.contextmenu.el || '',
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
       this.body = this.buildBody()
@@ -208,7 +215,7 @@ export class Table {
     }
   }
   private moveDown () {
-    if (this.currentIndexs && this.currentIndexs[1] < this.ss.rows().length) {
+    if (this.currentIndexs && this.currentIndexs[1] < this.ss.rows(this.options.mode === 'read').length) {
       this.currentIndexs[0] += 1
       this.moveSelector()
     }
@@ -237,7 +244,7 @@ export class Table {
         this.td(rindex, cindex).html(this.renderCell(rindex, cindex, cell))
       })
     }
-    this.editor.setValue(v)
+    this.editor && this.editor.setValue(v)
   }
 
   setTdWithCell (rindex: number, cindex: number, cell: Cell, autoWordWrap = true) {
@@ -250,7 +257,7 @@ export class Table {
     this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
       this.setTdWithCell(rindex, cindex, cell, k === 'wordWrap' && v);
     })
-    this.editor.setStyle(this.ss.currentCell())
+    this.editor && this.editor.setStyle(this.ss.currentCell())
   }
 
   undo (): boolean {
@@ -439,7 +446,7 @@ export class Table {
       firstTds.forEach(td => td.attr('height', h))
     }
     this.selector.reload()
-    this.editor.reload()
+    this.editor && this.editor.reload()
   }
   private changeRowResizer (index: number, distance: number) {
     const h = this.ss.row(index).height + distance
@@ -454,7 +461,7 @@ export class Table {
       cols.forEach(col => col.attr('width', w))
     }
     this.selector.reload()
-    this.editor.reload()
+    this.editor && this.editor.reload()
   }
 
   private buildColGroup (lastColWidth: number): Element {
@@ -472,7 +479,7 @@ export class Table {
   }
 
   private buildFixedLeft (): Element {
-    const rows = this.ss.rows();
+    const rows = this.ss.rows(this.options.mode === 'read');
     return h().class('spreadsheet-fixed')
     .style('width', '60px')
     .children([
@@ -485,13 +492,13 @@ export class Table {
       )),
       this.fixedLeftBody = 
       h().class('spreadsheet-fixed-body')
-      .style('height', `${this.bodyHeight() - 18}px`)
+      .style('height', `${this.options.mode === 'read' ? 'auto' : this.options.height() - 18}px`)
       .children([
         h('table').child(
           h('tbody').children(
             rows.map((row, rindex) => {
               let firstTd = h('td').attr('height', `${row.height}`).child(`${rindex + 1}`)
-                .on('mouseover', (evt: Event) => this.rowResizer.set(evt.target, rindex));
+                .on('mouseover', (evt: Event) => this.rowResizer && this.rowResizer.set(evt.target, rindex));
               this.firsttdsPush(rindex, firstTd)
               return h('tr').child(firstTd)
             })
@@ -507,37 +514,39 @@ export class Table {
       h('tr').children([
         h('th'),
         ...cols.map((col, index) => {
-          let th = h('th').child(col.title).on('mouseover', (evt: Event) => this.colResizer.set(evt.target, index));
+          let th = h('th').child(col.title).on('mouseover', (evt: Event) => this.colResizer && this.colResizer.set(evt.target, index));
           this.ths[index + ''] = th;
           return th;
         }),
         h('th')
       ]
     ))
-    return h().class('spreadsheet-header').style('width', `${this.bodyWidth()}px`).children([
+    return h().class('spreadsheet-header').style('width', `${this.options.width()}px`).children([
       h('table').children([this.buildColGroup(15), thead])
     ])
   }
 
   private mousedownCell (rindex: number, cindex: number) {
-    const editorValue = this.editor.value
-    if (this.currentIndexs && this.editor.target && editorValue) {
-      // console.log(':::editorValue:', editorValue)
-      const oldCell = this.ss.cellText(editorValue.text, (_rindex, _cindex, _cell: Cell) => {
-        this.td(_rindex, _cindex).html(this.renderCell(_rindex, _cindex, _cell))
-      });
-      // const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
-      // oldTd.html(this.renderCell(editorValue))
-      if (oldCell) {
-        // 设置内容之后，获取高度设置行高
-        if (oldCell.wordWrap) {
-          this.setRowHeight(this.currentIndexs[0], this.currentIndexs[1], true)
+    if (this.editor) {
+      const editorValue = this.editor.value
+      if (this.currentIndexs && this.editor.target && editorValue) {
+        // console.log(':::editorValue:', editorValue)
+        const oldCell = this.ss.cellText(editorValue.text, (_rindex, _cindex, _cell: Cell) => {
+          this.td(_rindex, _cindex).html(this.renderCell(_rindex, _cindex, _cell))
+        });
+        // const oldTd = this.td(this.currentIndexs[0], this.currentIndexs[1]);
+        // oldTd.html(this.renderCell(editorValue))
+        if (oldCell) {
+          // 设置内容之后，获取高度设置行高
+          if (oldCell.wordWrap) {
+            this.setRowHeight(this.currentIndexs[0], this.currentIndexs[1], true)
+          }
+          // console.log('old.td.offset:', oldCell)
+          // this.editorChange(oldCell)
         }
-        // console.log('old.td.offset:', oldCell)
-        // this.editorChange(oldCell)
       }
+      this.editor.clear()
     }
-    this.editor.clear()
 
     this.currentIndexs = [rindex, cindex]
     const cCell = this.ss.currentCell([rindex, cindex])
@@ -546,11 +555,11 @@ export class Table {
 
   private editCell(rindex: number, cindex: number) {
     const td = this.td(rindex, cindex)
-    this.editor.set(td.el, this.ss.currentCell())
+    this.editor && this.editor.set(td.el, this.ss.currentCell())
   }
 
   private buildBody () {
-    const rows = this.ss.rows();
+    const rows = this.ss.rows(this.options.mode === 'read');
     const cols = this.ss.cols();
 
     const mousedown = (rindex: number, cindex: number, evt: any) => {
@@ -558,7 +567,7 @@ export class Table {
       if (evt.button === 2) {
         // show contextmenu
         // console.log(':::evt:', evt)
-        this.contextmenu.set(evt)
+        this.contextmenu && this.contextmenu.set(evt)
         if (select && select.contains(rindex, cindex)) {
           return
         }
@@ -605,11 +614,11 @@ export class Table {
 
     return h().class('spreadsheet-body')
       .on('scroll', scrollFn)
-      .style('height', `${this.bodyHeight()}px`)
-      .style('width', `${this.bodyWidth()}px`)
+      .style('height', `${this.options.mode === 'read' ? 'auto' : this.options.height()}px`)
+      .style('width', `${this.options.width()}px`)
       .children([
         h('table').children([this.buildColGroup(0), tbody]),
-        this.editor.el,
+        this.editor && this.editor.el || '',
         this.selector.el,
         this.dashedSelector.el
       ]

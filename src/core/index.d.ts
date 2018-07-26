@@ -72,7 +72,7 @@ export declare class Spreadsheet {
     getFont(key: string | undefined): Font;
     getFormat(key: string | undefined): Format;
     row(index: number, v?: number): Row;
-    rows(): Array<Row>;
+    rows(isData: boolean): Array<Row>;
     col(index: number, v?: number): Col;
     cols(): Array<Col>;
 }

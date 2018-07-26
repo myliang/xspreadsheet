@@ -8,7 +8,13 @@ import { Cell } from "../core/cell";
 interface Map<T> {
     [key: string]: T;
 }
+export interface TableOption {
+    height: () => number;
+    width: () => number;
+    mode: 'design' | 'write' | 'read';
+}
 export declare class Table {
+    options: TableOption;
     cols: Map<Array<Element>>;
     firsttds: Map<Array<Element>>;
     tds: Map<Element>;
@@ -19,21 +25,19 @@ export declare class Table {
     header: Element;
     body: Element;
     fixedLeftBody: Element | null;
-    editor: Editor;
-    rowResizer: Resizer;
-    colResizer: Resizer;
-    contextmenu: ContextMenu;
+    editor: Editor | null;
+    rowResizer: Resizer | null;
+    colResizer: Resizer | null;
+    contextmenu: ContextMenu | null;
     selector: Selector;
     dashedSelector: DashedSelector;
     state: 'copy' | 'cut' | 'copyformat' | null;
     currentIndexs: [number, number] | null;
-    bodyHeight: () => number;
-    bodyWidth: () => number;
     focusing: boolean;
     change: (data: SpreadsheetData) => void;
     editorChange: (v: Cell) => void;
     clickCell: (rindex: number, cindex: number, v: Cell | null) => void;
-    constructor(ss: Spreadsheet, bodyHeightFn: () => number, bodyWidthFn: () => number);
+    constructor(ss: Spreadsheet, options: TableOption);
     reload(): void;
     private moveLeft;
     private moveUp;

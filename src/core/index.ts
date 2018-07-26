@@ -330,7 +330,7 @@ export class Spreadsheet {
             if (v) {
               cb(keys[0], keys[1], this.cell(keys[0], keys[1], nValue, true))
             } else {
-              cb(keys[0], keys[1], this.cell(keys[0], keys[1], MapIntFilter(oldCell, keys[2])))
+              cb(keys[0], keys[1], this.cell(keys[0], keys[1], mapIntFilter(oldCell, keys[2])))
             }
           } else {
             cb(keys[0], keys[1], this.cell(keys[0], keys[1], v || {}))
@@ -391,7 +391,7 @@ export class Spreadsheet {
               history.add([rindex, cindex, 'rowspan'], oldCell.rowspan, undefined)
               history.add([rindex, cindex, 'colspan'], oldCell.colspan, undefined)
 
-              let cell = this.cell(rindex, cindex, MapIntFilter(oldCell, 'rowspan', 'colspan', 'merge'))
+              let cell = this.cell(rindex, cindex, mapIntFilter(oldCell, 'rowspan', 'colspan', 'merge'))
               cancel(rindex, cindex, cell)
             }
           }
@@ -407,7 +407,7 @@ export class Spreadsheet {
             const oldCell = this.getCell(rindex, cindex)
             if (oldCell !== null) {
               history.add([rindex, cindex, 'invisible'], oldCell.invisible, undefined)
-              let cell = this.cell(rindex, cindex, MapIntFilter(oldCell, 'rowspan', 'colspan', 'merge', 'invisible'))
+              let cell = this.cell(rindex, cindex, mapIntFilter(oldCell, 'rowspan', 'colspan', 'merge', 'invisible'))
               other(rindex, cindex, cell)
             }
           }
@@ -429,7 +429,7 @@ export class Spreadsheet {
         
         history.add([rindex, cindex, key], oldCell !== null ? oldCell[key] : undefined, value)
         
-        let cell = this.cell(rindex, cindex, isDefault ? MapIntFilter(oldCell, key) : v, !isDefault)
+        let cell = this.cell(rindex, cindex, isDefault ? mapIntFilter(oldCell, key) : v, !isDefault)
         cb(rindex, cindex, cell)
       
       })
@@ -496,9 +496,18 @@ export class Spreadsheet {
     }
     return (<any>Object).assign({height: data.rowHeight}, data.rows ? data.rows[index] : {})
   }
-  rows (): Array<Row> {
+  // isData 是否返回数据的最大行数
+  rows (isData: boolean): Array<Row> {
     const { data } = this;
-    let maxRow = MapIntMaxKey(100, data.rows);
+    let maxRow;
+    if (isData) {
+      maxRow = 10
+      if (this.data.cells) {
+        maxRow = mapIntMaxKey(this.data.cells) + 2
+      }
+    } else {
+      maxRow = mapIntMaxKeyWithDefault(100, data.rows)
+    }
     return range(maxRow, (index) => this.row(index))
   }
 
@@ -513,20 +522,23 @@ export class Spreadsheet {
   }
   cols (): Array<Col> {
     const { data } = this;
-    let maxCol = MapIntMaxKey(26, data.cols);
+    let maxCol = mapIntMaxKeyWithDefault(26, data.cols);
     return range(maxCol, (index) => this.col(index));
   }
 }
 
+const mapIntMaxKey = function<T>(mapInt: MapInt<T>): number {
+  return Math.max(...Object.keys(mapInt).map(s => parseInt(s)))
+}
 // methods
-const MapIntMaxKey = function<T>(max: number, MapInt: MapInt<T> | undefined): number {
-  if (MapInt) {
-    const m = Math.max(...Object.keys(MapInt).map(s => parseInt(s)))
+const mapIntMaxKeyWithDefault = function<T>(max: number, mapInt: MapInt<T> | undefined): number {
+  if (mapInt) {
+    const m = mapIntMaxKey(mapInt)
     if (m > max) return m;
   }
   return max;
 }
-const MapIntFilter = function(obj: any, ...keys: Array<any>): any {
+const mapIntFilter = function(obj: any, ...keys: Array<any>): any {
   const ret: any = {}
   if (obj){
     Object.keys(obj).forEach(e => {
