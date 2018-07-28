@@ -336,6 +336,12 @@ export class Spreadsheet {
             cb(keys[0], keys[1], this.cell(keys[0], keys[1], v || {}))
           }
         }
+      } else {
+        // cols, rows
+        // const v = state === 'undo' ? oldValue : value
+        // if (v !== null) {
+        //   this.data[v.type]
+        // }
       }
       // console.log('keys:', keys, ', oldValue:', oldValue, ', value:', value)
     })
@@ -490,9 +496,12 @@ export class Spreadsheet {
   row (index: number, v?: number): Row {
     const { data } = this;
     if (v !== undefined) {
+      const history = new History('rows')
       data.rows = data.rows || {}
       data.rows[index] = data.rows[index] || {}
       data.rows[index].height = v
+      history.add([index], null, data.rows[index])
+      this.histories.push(history)
     }
     return (<any>Object).assign({height: data.rowHeight}, data.rows ? data.rows[index] : {})
   }
@@ -514,9 +523,12 @@ export class Spreadsheet {
   col (index: number, v?: number): Col {
     const { data } = this;
     if (v !== undefined) {
+      const history = new History('cols')
       data.cols = data.cols || {}
       data.cols[index] = data.cols[index] || {}
       data.cols[index].width = v
+      history.add([index], null, data.cols[index])
+      this.histories.push(history)
     }
     return (<any>Object).assign({width: data.colWidth, title: alphabet(index)}, data.cols ? data.cols[index] : {})
   }

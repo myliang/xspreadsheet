@@ -254,7 +254,9 @@ export class Table {
   }
 
   setCellAttr (k: keyof Cell, v: any) {
+    // console.log('::k:', k, '::v:', v)
     this.ss.cellAttr(k, v, (rindex, cindex, cell) => {
+      // console.log(':rindex:', rindex, '; cindex:', cindex, '; cell: ', cell)
       this.setTdWithCell(rindex, cindex, cell, k === 'wordWrap' && v);
     })
     this.editor && this.editor.setStyle(this.ss.currentCell())
@@ -415,10 +417,13 @@ export class Table {
   private setRowHeight (rindex: number, cindex: number, autoWordWrap: boolean) {
     // console.log('rowHeight: ', this.td(rindex, cindex).offset().height, ', autoWordWrap:', autoWordWrap)
     // 遍历rindex行的所有单元格，计算最大高度
+    if (autoWordWrap === false) {
+      return ;
+    }
     const cols = this.ss.cols()
     const td = this.td(rindex, cindex)
     let h = td.offset().height
-    // console.log()
+    // console.log('h:', h)
     const tdRowspan = td.attr('rowspan')
     if (tdRowspan) {
       for (let i = 1; i < parseInt(tdRowspan); i++) {
@@ -426,6 +431,7 @@ export class Table {
         firsttds && (h -= parseInt(firsttds[0].attr('height') || 0) + 1)
       }
     }
+    // console.log('after.h:', h)
     this.changeRowHeight(rindex, h - 1);
   }
 
