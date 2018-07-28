@@ -4,6 +4,8 @@ export declare class Suggest extends Element {
     width: number;
     filterList: Array<Element>;
     currentIndex: number;
+    target: Element | null;
+    evtTarget: Element | null;
     itemClick: (it: [string, string]) => void;
     constructor(list: Array<[string, string]>, width: number);
     private documentHandler;
@@ -11,5 +13,5 @@ export declare class Suggest extends Element {
     private hideAndRemoveEvents;
     private removeEvents;
     private clickItemHandler;
-    search(target: Element, word: string): void;
+    search(target: Element, input: Element, word: string): void;
 }

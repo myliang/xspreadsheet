@@ -81,7 +81,6 @@ export class Table {
     this.el = h().class('spreadsheet-table').children([
       this.colResizer && this.colResizer.el || '',
       this.rowResizer && this.rowResizer.el || '',
-      this.contextmenu && this.contextmenu.el || '',
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
       this.body = this.buildBody()
@@ -131,16 +130,7 @@ export class Table {
           evt.returnValue = false
         }
       } else {
-
-        // if (evt.target.type === 'textarea') {
-        //   if (evt.keyCode === 9 || evt.keyCode === 13) {
-        //     evt.keyCode === 9 ? this.moveRight() : this.moveDown()
-        //     this.currentIndexs && this.editCell(this.currentIndexs[0], this.currentIndexs[1])
-        //     evt.returnValue = false
-        //   }
-        //   return ;
-        // }
-        // console.log('>>>>>>>>>>>>>>', evt)
+        console.log('>>>>>>>>>>>>>>', evt)
         switch (evt.keyCode) {
           case 37: // left
             this.moveLeft()
@@ -167,10 +157,11 @@ export class Table {
             evt.returnValue = false
             break;
         }
+      
 
         // 输入a-zA-Z1-9
         if (this.options.mode !== 'read') {
-          if (evt.keyCode >= 65 && evt.keyCode <= 90 || evt.keyCode >= 48 && evt.keyCode <= 57 || evt.keyCode >= 96 && evt.keyCode <= 105) {
+          if (evt.keyCode >= 65 && evt.keyCode <= 90 || evt.keyCode >= 48 && evt.keyCode <= 57 || evt.keyCode >= 96 && evt.keyCode <= 105 || evt.keyCode == 187) {
             // if (this.currentIndexs) {
             // console.log('::::::::', evt.target.type)
             if (evt.target.type !== 'textarea') {
@@ -195,7 +186,6 @@ export class Table {
     this.el.children([
       this.colResizer && this.colResizer.el || '',
       this.rowResizer && this.rowResizer.el || '',
-      this.contextmenu && this.contextmenu.el || '',
       this.buildFixedLeft(),
       this.header = this.buildHeader(),
       this.body = this.buildBody()
@@ -354,6 +344,11 @@ export class Table {
 
   // insert
   insert (type: 'row' | 'col', amount: number) {
+    if (type === 'col') {
+      // insert col
+    } else if (type === 'row') {
+      // insert row
+    }
     this.ss.insert(type, amount, (rindex, cindex, cell) => {
       this.setTdStylesAndAttrsAndText(rindex, cindex, cell)
     })
@@ -572,7 +567,7 @@ export class Table {
       const {select} = this.ss
       if (evt.button === 2) {
         // show contextmenu
-        // console.log(':::evt:', evt)
+        console.log(':::evt:', evt)
         this.contextmenu && this.contextmenu.set(evt)
         if (select && select.contains(rindex, cindex)) {
           return
@@ -626,6 +621,7 @@ export class Table {
         h('table').children([this.buildColGroup(0), tbody]),
         this.editor && this.editor.el || '',
         this.selector.el,
+        this.contextmenu && this.contextmenu.el || '',
         this.dashedSelector.el
       ]
     )

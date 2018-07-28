@@ -7,6 +7,8 @@ export class Suggest extends Element {
   
   filterList: Array<Element> = [];
   currentIndex = 0;
+  target: Element | null = null;
+  evtTarget: Element | null = null;
 
   itemClick: (it: [string, string]) => void = (it) => {}
 
@@ -37,6 +39,7 @@ export class Suggest extends Element {
         }
         this.filterList[this.currentIndex].active()
         e.returnValue = false
+        e.stopPropagation();
         break;
       case 39: // right
         e.returnValue = false
@@ -55,6 +58,7 @@ export class Suggest extends Element {
         e.returnValue = false
         break;
     }
+    e.stopPropagation();
   }
 
   private hideAndRemoveEvents () {
@@ -62,8 +66,10 @@ export class Suggest extends Element {
     this.removeEvents();
   }
   private removeEvents () {
-    unbind('click', this.data('_outsidehandler'))
-    unbind('keydown', this.data('_keydownhandler'))
+    if (this.evtTarget !== null) {
+      unbind('click', this.data('_outsidehandler'), this.evtTarget.el)
+      unbind('keydown', this.data('_keydownhandler'), this.evtTarget.el)
+    }
   }
 
   private clickItemHandler (it: [string, string]) {
@@ -73,8 +79,10 @@ export class Suggest extends Element {
   }
 
 
-  search (target: Element, word: string) {
+  search (target: Element, input: Element, word: string) {
     this.removeEvents()
+    this.target = target;
+    this.evtTarget = input;
 
     const { left, top, width, height } = target.offset()
     this.styles({left: `${left}px`, top: `${top + height + 2}px`, width: `${this.width}px`})
@@ -106,8 +114,10 @@ export class Suggest extends Element {
       })
       this.data('_keydownhandler', (evt: any) => this.documentKeydownHandler(evt))
       setTimeout(() => {
-        bind('click', this.data('_outsidehandler'))
-        bind('keydown', this.data('_keydownhandler'))
+        if (this.evtTarget !== null) {
+          bind('click', this.data('_outsidehandler'), this.evtTarget.el)
+          bind('keydown', this.data('_keydownhandler'), this.evtTarget.el)
+        }
       }, 0)
     }
     this.html(``)

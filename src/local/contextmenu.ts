@@ -27,7 +27,7 @@ export class ContextMenu {
     const elRect = this.el.el.getBoundingClientRect()
     // cal left top
     const { clientWidth, clientHeight } = document.documentElement
-    let top = offsetTop + 24 + evt.offsetY
+    let top = offsetTop + evt.offsetY
     let left = offsetLeft + evt.offsetX
 
     if (evt.clientY > clientHeight / 1.5) {

@@ -23,6 +23,12 @@ export class Editor {
       ])
     , this.suggest = new Suggest(suggestList, 180)]).hide()
 
+    this.el.on('keydown', (evt: any) => {
+      if (evt.keyCode !== 13 && evt.keyCode !== 9) {
+        evt.stopPropagation();
+      }
+    })
+
     this.suggest.itemClick = (it) => {
       // console.log('>>>>>>>>>>>>', it)
       const text = `=${it[0]}()`;
@@ -86,7 +92,6 @@ export class Editor {
   }
 
   private inputKeydown (evt: any) {
-    // console.log(':::::::::keydown...', evt.keyCode)
     if (evt.keyCode === 13) {
       evt.preventDefault()
     }
@@ -101,7 +106,7 @@ export class Editor {
     }
     this.change(this.value)
     this.autocomplete(v);
-  
+
     this.textline.html(v);
     this.reload()
 
@@ -112,7 +117,7 @@ export class Editor {
       if (!v.includes('(')) {
         const search = v.substring(1)
         console.log(':::;search word:', search)
-        this.suggest.search(this.editor, search);
+        this.suggest.search(this.editor, this.textarea, search);
       } else {
         this.suggest.hide()
       }
