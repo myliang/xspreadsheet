@@ -627,6 +627,13 @@ export class Table {
     )
   }
 
+  // 向尾部添加行
+  private addRow (num = 1) {
+    if (num > 0) {
+
+    }
+  }
+
   private firsttdsPush (index: number, el: Element) {
     this.firsttds[`${index}`] = this.firsttds[`${index}`] || []  
     this.firsttds[`${index}`].push(el)

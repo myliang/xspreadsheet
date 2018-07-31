@@ -75,6 +75,7 @@ export declare class Table {
     private mousedownCell;
     private editCell;
     private buildBody;
+    private addRow;
     private firsttdsPush;
 }
 export {};

@@ -534,7 +534,7 @@ export class Spreadsheet {
   }
   cols (): Array<Col> {
     const { data } = this;
-    let maxCol = mapIntMaxKeyWithDefault(26, data.cols);
+    let maxCol = mapIntMaxKeyWithDefault(26 * 2, data.cols);
     return range(maxCol, (index) => this.col(index));
   }
 }
