@@ -182,6 +182,7 @@ export class Table {
   }
 
   reload () {
+    this.firsttds = {}
     this.el.html('')
     this.el.children([
       this.colResizer && this.colResizer.el || '',
@@ -440,11 +441,11 @@ export class Table {
     const cols = this.ss.cols()
     const td = this.td(rindex, cindex)
     let h = td.offset().height
-    // console.log('h:', h)
+    console.log('h:', h)
     const tdRowspan = td.attr('rowspan')
     if (tdRowspan) {
       for (let i = 1; i < parseInt(tdRowspan); i++) {
-        let firsttds = this.firsttds[i+'']
+        let firsttds = this.firsttds[(rindex + i) +'']
         firsttds && (h -= parseInt(firsttds[0].attr('height') || 0) + 1)
       }
     }
@@ -477,7 +478,7 @@ export class Table {
   }
   private changeColResizer (index: number, distance: number) {
     const w = this.ss.col(index).width + distance
-    if (w <= this.ss.defaultColWidth()) return
+    if (w <= 50) return
     this.ss.col(index, w)
     const cols = this.cols[index+'']
     if (cols) {
@@ -521,7 +522,7 @@ export class Table {
           h('tbody').children(
             rows.map((row, rindex) => {
               let firstTd = h('td').attr('height', `${row.height}`).child(`${rindex + 1}`)
-                .on('mouseover', (evt: Event) => this.rowResizer && this.rowResizer.set(evt.target, rindex));
+                .on('mouseover', (evt: Event) => this.rowResizer && this.rowResizer.set(evt.target, rindex, this.body.el.scrollTop));
               this.firsttdsPush(rindex, firstTd)
               return h('tr').child(firstTd)
             })
@@ -537,7 +538,10 @@ export class Table {
       h('tr').children([
         h('th'),
         ...cols.map((col, index) => {
-          let th = h('th').child(col.title).on('mouseover', (evt: Event) => this.colResizer && this.colResizer.set(evt.target, index));
+          let th = h('th').child(col.title).on('mouseover', (evt: Event) => {
+            console.log(evt)
+            this.colResizer && this.colResizer.set(evt.target, index, this.body.el.scrollLeft)
+          });
           this.ths[index + ''] = th;
           return th;
         }),

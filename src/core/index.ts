@@ -530,7 +530,16 @@ export class Spreadsheet {
       history.add([index], null, data.cols[index])
       this.histories.push(history)
     }
-    return (<any>Object).assign({width: data.colWidth, title: alphabet(index)}, data.cols ? data.cols[index] : {})
+    const ret:any = {width: data.colWidth, title: alphabet(index)}
+    if (data.cols && data.cols[index]) {
+      for (let prop in data.cols[index]) {
+        const col:any = data.cols[index]
+        if (col[prop]) {
+          ret[prop] = col[prop]
+        }
+      }
+    }
+    return ret
   }
   cols (): Array<Col> {
     const { data } = this;

@@ -15,21 +15,20 @@ export class Resizer {
     ])
   }
 
-  set (target: any, index: number) {
+  set (target: any, index: number, scroll: number) {
     if (this.moving) return ;
     this.index = index
     const { vertical } = this
     const { offsetLeft, offsetTop, offsetHeight, offsetWidth, parentNode } = target
-    // console.log(parentNode.parentNode.parentNode.parentNode.nextSibling.offsetHeight)
     this.resizer.styles({
-      left: `${vertical ? offsetLeft + offsetWidth - 5 : offsetLeft}px`,
-      top: `${vertical ? offsetTop : offsetTop + offsetHeight - 5 + 24}px`,
+      left: `${vertical ? offsetLeft + offsetWidth - 5 - scroll : offsetLeft}px`,
+      top: `${vertical ? offsetTop : offsetTop + offsetHeight - 5 + 24  - scroll}px`,
       width: `${vertical ? 5 : offsetWidth}px`,
       height: `${vertical ? offsetHeight : 5}px`
     })
     this.resizerLine.styles({
-      left: `${vertical ? offsetLeft + offsetWidth : offsetLeft}px`,
-      top: `${vertical ? offsetTop : offsetTop + offsetHeight + 24}px`,
+      left: `${vertical ? offsetLeft + offsetWidth - scroll : offsetLeft}px`,
+      top: `${vertical ? offsetTop : offsetTop + offsetHeight + 24 - scroll}px`,
       width: `${vertical ? 0 : parentNode.parentNode.parentNode.parentNode.parentNode.nextSibling.offsetWidth - 15}px`,
       height: `${vertical ? parentNode.parentNode.parentNode.parentNode.nextSibling.offsetHeight + parentNode.offsetHeight : 0}px`
     })
