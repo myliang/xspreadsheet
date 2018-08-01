@@ -130,7 +130,7 @@ export class Table {
           evt.returnValue = false
         }
       } else {
-        console.log('>>>>>>>>>>>>>>', evt)
+        // console.log('>>>>>>>>>>>>>>', evt)
         switch (evt.keyCode) {
           case 37: // left
             this.moveLeft()
@@ -195,35 +195,57 @@ export class Table {
   private moveLeft () {
     if (this.currentIndexs && this.currentIndexs[1] > 0) {
       this.currentIndexs[1] -= 1
-      this.moveSelector()
+      this.moveSelector('left')
     }
   }
   private moveUp () {
     if (this.currentIndexs && this.currentIndexs[0] > 0) {
       this.currentIndexs[0] -= 1
-      this.moveSelector()
+      this.moveSelector('up')
     }
   }
   private moveDown () {
-    if (this.currentIndexs && this.currentIndexs[1] < this.ss.rows(this.options.mode === 'read').length) {
+    if (this.currentIndexs && this.currentIndexs[0] < this.ss.rows(this.options.mode === 'read').length) {
       this.currentIndexs[0] += 1
-      this.moveSelector()
+      this.moveSelector('down')
     }
   }
   private moveRight () {
-    if (this.currentIndexs && this.currentIndexs[0] < this.ss.cols().length) {
+    if (this.currentIndexs && this.currentIndexs[1] < this.ss.cols().length) {
       this.currentIndexs[1] += 1
-      this.moveSelector()
+      this.moveSelector('right')
     }
   }
 
   // 移动选框
-  private moveSelector () {
+  private moveSelector (direction: 'right' | 'left' | 'up' | 'down') {
     if (this.currentIndexs) {
       const [rindex, cindex] = this.currentIndexs
       const td = this.td(rindex, cindex)
-      td && this.selector.setCurrentTarget(td.el)
-      this.mousedownCell(rindex, cindex)
+      // console.log('move.td:', td)
+      if (td) {
+        this.selector.setCurrentTarget(td.el)
+        const bodyWidth = this.options.width()
+        const bodyHeight = this.options.height()
+        const {left, top, width, height} = td.offset()
+        // console.log(this.body.el.scrollLeft, ', body-width:', bodyWidth, ', left:', left, ', width=', width)
+        const leftDiff = left + width - bodyWidth
+        if (leftDiff > 0 && direction === 'right') {
+            this.body.el.scrollLeft = leftDiff + 15
+        }
+        if (direction === 'left' && this.body.el.scrollLeft + 60 > left) {
+          this.body.el.scrollLeft -= (this.body.el.scrollLeft + 60 - left)
+        }
+        if (direction === 'up' && this.body.el.scrollTop > top) {
+          this.body.el.scrollTop -= (this.body.el.scrollTop - top)
+        }
+        if (direction === 'down' && top + height - bodyHeight > 0) {
+          this.body.el.scrollTop = top + height - bodyHeight + 15;
+        }
+
+        this.mousedownCell(rindex, cindex)
+      }
+      
     }
   }
 
