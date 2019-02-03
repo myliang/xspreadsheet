@@ -16,7 +16,6 @@
 npm install typescript --save-dev
 npm install awesome-typescript-loader --save-dev
 npm install xspreadsheet --save-dev
-npm install @types/xspreadsheet --save-dev
 ```
 
 ## Quick Start
